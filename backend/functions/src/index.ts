@@ -14,7 +14,7 @@ admin.initializeApp()
 /**
  * Runs every minute.
  */
-exports.accountcleanup = functions.pubsub
+exports.update = functions.pubsub
   .schedule('* * * * *')
   .onRun(async (context) => {
     functions.logger.info(
