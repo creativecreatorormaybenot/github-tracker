@@ -10,6 +10,7 @@
     ]
   },
   "hosting": {
+    "site": "github-repo-tracker",
     "public": "public",
     "ignore": [
       "firebase.json",
