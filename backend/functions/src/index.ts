@@ -1,9 +1,9 @@
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 import { Octokit } from '@octokit/rest'
-import { SearchReposResponseData } from '@octokit/types'
+import { Endpoints, SearchReposResponseData } from '@octokit/types'
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
-import Twitter from 'twitter-lite'
+import Twitter, { TwitterOptions } from 'twitter-lite'
 
 type Repo = SearchReposResponseData['items'][0]
 
@@ -115,7 +115,10 @@ exports.update = functions.pubsub
   // 20000 / 200 = 100 times per day. There are 1440 minutes in a day, which means that we
   // can update every 14.4 minutes. Consequently, every 15 minutes is the maximum frequency
   // we can use for updating.
-  .schedule('*/15 * * * *')
+  .schedule('*/57 * * * *')
+  // Not using the actual schedule for debugging purposed. The free limits would not be
+  // sufficient because I ran the function manually a bunch.
+  // .schedule('*/15 * * * *')
   .onRun(async (context) => {
     // The start date is only use for logging purposes.
     const start = new Date()
@@ -125,14 +128,15 @@ exports.update = functions.pubsub
     // the client is loaded before execution as it depends on secrets
     // that can only be loaded asynchronously from secret manager.
     if (twitter === undefined) {
-      twitter = new Twitter({
+      const config: TwitterOptions = {
         consumer_key: await accessSecret('TWITTER_APP_CONSUMER_KEY'),
         consumer_secret: await accessSecret('TWITTER_APP_CONSUMER_KEY_SECRET'),
         access_token_key: await accessSecret('TWITTER_APP_ACCESS_TOKEN'),
         access_token_secret: await accessSecret(
           'TWITTER_APP_ACCESS_TOKEN_SECRET'
         ),
-      })
+      }
+      twitter = new Twitter(config)
     }
 
     // We could also use a Firestore server timestamp instead, however,
@@ -148,15 +152,18 @@ exports.update = functions.pubsub
     const q = 'stars:>32986',
       sort = 'stars',
       per_page = 100
+    const params: Endpoints['GET /search/repositories']['parameters'] = {
+      q,
+      sort,
+      per_page,
+    }
     // We assume that the requests are successful and do not care about any
     // other information that comes with the response.
     let repos: Array<Repo> = []
-    repos = repos.concat(
-      (await octokit.search.repos({ q, sort, per_page, page: 1 })).data.items
-    )
-    repos = repos.concat(
-      (await octokit.search.repos({ q, sort, per_page, page: 2 })).data.items
-    )
+    params.page = 1
+    repos = repos.concat((await octokit.search.repos(params)).data.items)
+    params.page = 2
+    repos = repos.concat((await octokit.search.repos(params)).data.items)
 
     const softwareRepos = repos.filter(
         (repo) => !contentRepos.includes(repo.full_name)
@@ -240,8 +247,6 @@ exports.update = functions.pubsub
 
     await batch.commit()
 
-    await tweetTopRepo(top100[0])
-
     functions.logger.info(
       `Started update at ${start} and ended at ${new Date()}.`
     )
@@ -287,6 +292,6 @@ async function getDaysAgoDoc(
  */
 async function tweetTopRepo(repo: Repo) {
   await twitter.post('statuses/update', {
-    status: `The most starred software repo on all of #GitHub is ${repo.full_name} with ${repo.stargazers_count} 🤩`,
+    status: `The most starred software repo on all of #GitHub is **${repo.full_name}** with ${repo.stargazers_count} stars 🤩\n\n#${repo.name} ${repo.url}`,
   })
 }
