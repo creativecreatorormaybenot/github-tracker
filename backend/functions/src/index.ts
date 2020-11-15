@@ -68,6 +68,7 @@ exports.update = functions.pubsub
     // stats deletions (deleting docs that are not top 100 anymore).
     const batch = firestore.batch()
 
+    const batchingPromises: Array<Promise<any>> = []
     for (const repo of softwareRepos) {
       const dataCollection = firestore
         .collection('repos')
@@ -84,41 +85,49 @@ exports.update = functions.pubsub
         github: repo,
       })
 
-      const oneDayDoc = await getDaysAgoDoc(dataCollection, now, 1),
-        sevenDayDoc = await getDaysAgoDoc(dataCollection, now, 7),
-        twentyEightDayDoc = await getDaysAgoDoc(dataCollection, now, 28)
+      const statsPromise = Promise.all([
+        getDaysAgoDoc(dataCollection, now, 1),
+        getDaysAgoDoc(dataCollection, now, 7),
+        getDaysAgoDoc(dataCollection, now, 28),
+      ]).then((snapshots) => {
+        const [one, seven, twentyEight] = snapshots
 
-      batch.set(firestore.doc(`stats/${repo.id}`), {
-        current: {
-          position: softwareRepos.indexOf(repo) + 1,
-          stars: repo.stargazers_count,
-        },
-        ...(oneDayDoc == undefined
-          ? {}
-          : {
-              '1day': {
-                position: oneDayDoc.get('position'),
-                stars: oneDayDoc.get('stars'),
-              },
-            }),
-        ...(sevenDayDoc == undefined
-          ? {}
-          : {
-              '7day': {
-                position: sevenDayDoc.get('position'),
-                stars: sevenDayDoc.get('stars'),
-              },
-            }),
-        ...(twentyEightDayDoc == undefined
-          ? {}
-          : {
-              '28day': {
-                position: twentyEightDayDoc.get('position'),
-                stars: twentyEightDayDoc.get('stars'),
-              },
-            }),
+        batch.set(firestore.doc(`stats/${repo.id}`), {
+          current: {
+            position: softwareRepos.indexOf(repo) + 1,
+            stars: repo.stargazers_count,
+          },
+          ...(one == undefined
+            ? {}
+            : {
+                '1day': {
+                  position: one.get('position'),
+                  stars: one.get('stars'),
+                },
+              }),
+          ...(seven == undefined
+            ? {}
+            : {
+                '7day': {
+                  position: seven.get('position'),
+                  stars: seven.get('stars'),
+                },
+              }),
+          ...(twentyEight == undefined
+            ? {}
+            : {
+                '28day': {
+                  position: twentyEight.get('position'),
+                  stars: twentyEight.get('stars'),
+                },
+              }),
+        })
+        batchingPromises.push(statsPromise)
       })
     }
+    // This way we can run all the 300 document gets for the historical
+    // stats in parallel and not have the function timeout.
+    await Promise.all(batchingPromises)
 
     await batch.commit()
 
