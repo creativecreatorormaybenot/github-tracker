@@ -122,8 +122,8 @@ exports.update = functions.pubsub
                 },
               }),
         })
-        batchingPromises.push(statsPromise)
       })
+      batchingPromises.push(statsPromise)
     }
     // This way we can run all the 300 document gets for the historical
     // stats in parallel and not have the function timeout.
