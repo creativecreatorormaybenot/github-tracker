@@ -54,7 +54,7 @@ exports.update = functions.pubsub
       ),
       top100 = softwareRepos.slice(0, 100)
 
-    if (top100.length != 100) {
+    if (top100.length !== 100) {
       functions.logger.warn(
         `Only ${top100.length}/100 repos could be retrieved.`
       )
@@ -97,7 +97,7 @@ exports.update = functions.pubsub
             position: softwareRepos.indexOf(repo) + 1,
             stars: repo.stargazers_count,
           },
-          ...(one == undefined
+          ...(one === undefined
             ? {}
             : {
                 '1day': {
@@ -105,7 +105,7 @@ exports.update = functions.pubsub
                   stars: one.get('stars'),
                 },
               }),
-          ...(seven == undefined
+          ...(seven === undefined
             ? {}
             : {
                 '7day': {
@@ -113,7 +113,7 @@ exports.update = functions.pubsub
                   stars: seven.get('stars'),
                 },
               }),
-          ...(twentyEight == undefined
+          ...(twentyEight === undefined
             ? {}
             : {
                 '28day': {
