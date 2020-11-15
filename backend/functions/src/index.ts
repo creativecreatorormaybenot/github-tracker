@@ -7,10 +7,23 @@ const octokit = new Octokit()
 const firestore = admin.firestore()
 
 /**
- * Runs every minute.
+ * Updates the tracker.
+ *
+ * This involves three steps:
+ * 1. Fetch the top 100 repos and save their data.
+ * 2. Update the stats for the top 100 repos.
+ * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
 exports.update = functions.pubsub
-  .schedule('* * * * *')
+  // We update every 15 minutes in order to stay within the free tier of Cloud Firestore.
+  // We have 20k free writes per day. Every update call will trigger exactly 200 writes
+  // and up to 100 deletes. The delete limit is also 20k, so we do not need to consider
+  // deletes (as we will never perform more deletes than writes but have twice the limit).
+  // In order to not surpass the free limit of 20k reads, we can therefore update
+  // 20000 / 200 = 100 times per day. There are 1440 minutes in a day, which means that we
+  // can update every 14.4 minutes. Consequently, every 15 minutes is the maximum frequency
+  // we can use for updating.
+  .schedule('15 * * * *')
   .onRun(async (context) => {
     // The start date is only use for logging purposes.
     const start = new Date()
@@ -18,7 +31,7 @@ exports.update = functions.pubsub
     // We could also use a Firestore server timestamp instead, however,
     // we want to use the local timestamp here, so that it represents the
     // precise time we made the search request.
-    const now = FirebaseFirestore.Timestamp.now()
+    const now = admin.firestore.Timestamp.now()
 
     // 32986 is the precise amount of stars that exactly only 200 repos
     // had achieved at the time I wrote this code. There were 201 repos
