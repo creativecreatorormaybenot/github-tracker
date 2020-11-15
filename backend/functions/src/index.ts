@@ -292,6 +292,6 @@ async function getDaysAgoDoc(
  */
 async function tweetTopRepo(repo: Repo) {
   await twitter.post('statuses/update', {
-    status: `The most starred software repo on all of #GitHub is **${repo.full_name}** with ${repo.stargazers_count} stars 🤩\n\n#${repo.name} ${repo.url}`,
+    status: `The most starred software repo on all of #GitHub is *${repo.full_name}* with ${repo.stargazers_count} stars 🤩\n\n#${repo.name} ${repo.html_url}`,
   })
 }
