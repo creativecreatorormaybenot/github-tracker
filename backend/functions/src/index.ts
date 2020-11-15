@@ -29,7 +29,7 @@ async function accessSecret(name: string): Promise<string> {
     name: `projects/github-tracker-b5c54/secrets/${name}/versions/latest`,
   })
 
-  const responsePayload = accessResponse!.payload!.data!.toString()
+  const responsePayload = accessResponse.payload!.data!.toString()
   return responsePayload
 }
 
@@ -150,11 +150,11 @@ exports.update = functions.pubsub
       per_page = 100
     // We assume that the requests are successful and do not care about any
     // other information that comes with the response.
-    const repos: Array<Repo> = []
-    repos.concat(
+    let repos: Array<Repo> = []
+    repos = repos.concat(
       (await octokit.search.repos({ q, sort, per_page, page: 1 })).data.items
     )
-    repos.concat(
+    repos = repos.concat(
       (await octokit.search.repos({ q, sort, per_page, page: 2 })).data.items
     )
 
@@ -277,7 +277,7 @@ async function getDaysAgoDoc(
     )
     .limit(1)
     .get()
-  return result.docs.length == 0 ? undefined : result.docs[0]
+  return result.docs.length === 0 ? undefined : result.docs[0]
 }
 
 /**
