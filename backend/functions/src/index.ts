@@ -69,30 +69,54 @@ exports.update = functions.pubsub
     const batch = firestore.batch()
 
     for (const repo of softwareRepos) {
-      batch.create(
-        firestore
-          .collection('repos')
-          // We use the repo ID because we want to make sure that we
-          // can handle repo name changes and owner changes.
-          .doc(repo.id.toString())
-          .collection('data')
-          .doc(),
-        {
-          timestamp: now,
-          position: softwareRepos.indexOf(repo) + 1,
-          // We can store the whole item we retrieved from Octokit
-          // as the GitHub data.
-          github: repo,
-        }
-      )
+      const dataCollection = firestore
+        .collection('repos')
+        // We use the repo ID because we want to make sure that we
+        // can handle repo name changes and owner changes.
+        .doc(repo.id.toString())
+        .collection('data')
 
-      // TEMPORARY
-      batch.set(firestore.doc(`stats/${repo.id}`), {
+      batch.create(dataCollection.doc(), {
         timestamp: now,
         position: softwareRepos.indexOf(repo) + 1,
         // We can store the whole item we retrieved from Octokit
         // as the GitHub data.
         github: repo,
+      })
+
+      const oneDayDoc = await getDaysAgoDoc(dataCollection, now, 1),
+        sevenDayDoc = await getDaysAgoDoc(dataCollection, now, 7),
+        twentyEightDayDoc = await getDaysAgoDoc(dataCollection, now, 28)
+
+      batch.set(firestore.doc(`stats/${repo.id}`), {
+        current: {
+          position: softwareRepos.indexOf(repo) + 1,
+          stars: repo.stargazers_count,
+        },
+        ...(oneDayDoc == undefined
+          ? {}
+          : {
+              '1day': {
+                position: oneDayDoc.get('position'),
+                stars: oneDayDoc.get('stars'),
+              },
+            }),
+        ...(sevenDayDoc == undefined
+          ? {}
+          : {
+              '7day': {
+                position: sevenDayDoc.get('position'),
+                stars: sevenDayDoc.get('stars'),
+              },
+            }),
+        ...(twentyEightDayDoc == undefined
+          ? {}
+          : {
+              '28day': {
+                position: twentyEightDayDoc.get('position'),
+                stars: twentyEightDayDoc.get('stars'),
+              },
+            }),
       })
     }
 
@@ -102,6 +126,39 @@ exports.update = functions.pubsub
       `Started update at ${start} and ended at ${new Date()}.`
     )
   })
+
+/**
+ * Get a doc that is dated a number of days ago compared to now.
+ *
+ * @param collection the data collection, where the queried docs have a timestamp field.
+ * @param now the timestamp to compare against.
+ * @param days the number of days ago the doc should be dated compared to now.
+ *
+ * @returns undefined if there is no such recorded data or one matching snapshot.
+ */
+async function getDaysAgoDoc(
+  collection: admin.firestore.CollectionReference,
+  now: admin.firestore.Timestamp,
+  days: number
+): Promise<admin.firestore.DocumentSnapshot | undefined> {
+  const daysAgoMillis = now.toMillis() - 1000 * 60 * 60 * 24 * days
+  const result = await collection
+    .where(
+      'timestamp',
+      '>=',
+      admin.firestore.Timestamp.fromMillis(daysAgoMillis)
+    )
+    .where(
+      'timestamp',
+      '<',
+      // Give one hour of slack in case there was an issue with storing the data.
+      // If the data is more than an hour old, we declare it as unusable.
+      admin.firestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
+    )
+    .limit(1)
+    .get()
+  return result.docs.length == 0 ? undefined : result.docs[0]
+}
 
 /**
  * This list of content repos is a direct copy of https://github.com/timsneath/github-tracker/blob/f490b633b211ef6b400371d6953de7171993aedf/lib/contentRepos.dart#L10.
