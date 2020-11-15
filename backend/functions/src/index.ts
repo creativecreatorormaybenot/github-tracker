@@ -4,6 +4,7 @@ import { Octokit } from '@octokit/rest'
 
 admin.initializeApp()
 const octokit = new Octokit()
+const firestore = admin.firestore()
 
 /**
  * Runs every minute.
@@ -11,9 +12,13 @@ const octokit = new Octokit()
 exports.update = functions.pubsub
   .schedule('* * * * *')
   .onRun(async (context) => {
-    functions.logger.info(
-      `It is ${new Date()} in the Cloud Functions environment.`
-    )
+    // The start date is only use for logging purposes.
+    const start = new Date()
+
+    // We could also use a Firestore server timestamp instead, however,
+    // we want to use the local timestamp here, so that it represents the
+    // precise time we made the search request.
+    const now = FirebaseFirestore.Timestamp.now()
 
     // 32986 is the precise amount of stars that exactly only 200 repos
     // had achieved at the time I wrote this code. There were 201 repos
@@ -31,23 +36,58 @@ exports.update = functions.pubsub
       (await octokit.search.repos({ q, sort, per_page, page: 2 })).data.items
     )
 
-    functions.logger.info(
-      `Retrieved the data of the ${items.length} most popular repos.`
-    )
-
     const softwareRepos = items.filter(
-      (item) => !contentRepos.includes(item.full_name)
-    )
+        (item) => !contentRepos.includes(item.full_name)
+      ),
+      top100 = softwareRepos.slice(0, 100)
+
+    if (top100.length != 100) {
+      functions.logger.warn(
+        `Only ${top100.length}/100 repos could be retrieved.`
+      )
+    }
+
+    // We can savely use one batch for all our operations because
+    // batches allow up to 500 operations and we have a max
+    // of 300 operations in our batch.
+    // The sum consists of 100 normal data writes (creating data docs),
+    // 100 stats writes (creating or updating docs), and up to 100
+    // stats deletions (deleting docs that are not top 100 anymore).
+    const batch = firestore.batch()
+
+    for (const repo of softwareRepos) {
+      batch.create(
+        firestore
+          .collection('repos')
+          // We use the repo ID because we want to make sure that we
+          // can handle repo name changes and owner changes.
+          .doc(repo.id.toString())
+          .collection('data')
+          .doc(),
+        {
+          timestamp: now,
+          position: softwareRepos.indexOf(repo) + 1,
+          // We can store the whole item we retrieved from Octokit
+          // as the GitHub data.
+          github: repo,
+        }
+      )
+      batch.set(firestore.doc(`stats/${repo.id}`), repo)
+    }
+
+    await batch.commit()
 
     functions.logger.info(
-      `Only ${softwareRepos.length} repos of them are software repos.`
+      `Started update at ${start} and ended at ${new Date()}.`
     )
   })
 
 /**
  * This list of content repos is a direct copy of https://github.com/timsneath/github-tracker/blob/f490b633b211ef6b400371d6953de7171993aedf/lib/contentRepos.dart#L10.
  *
- * The github-tracker repo created by timsneath is also a major inspiration for this project.
+ * I also contributed to that list as part of making this project.
+ *
+ * The github-tracker repo (home of the list) created by timsneath is also a major inspiration for this project.
  */
 const contentRepos: Array<string> = [
   '996icu/996.ICU',
@@ -104,4 +144,5 @@ const contentRepos: Array<string> = [
   'labuladong/fucking-algorithm',
   'aymericdamien/TensorFlow-Examples',
   'Hack-with-Github/Awesome-Hacking',
+  '30-seconds/30-seconds-of-code',
 ]
