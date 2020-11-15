@@ -1,10 +1,102 @@
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 import { Octokit } from '@octokit/rest'
+import { SearchReposResponseData } from '@octokit/types'
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
+import Twitter from 'twitter-lite'
 
+type Repo = SearchReposResponseData['items'][0]
+
+// Initialize clients that can be initialized synchronously.
 admin.initializeApp()
 const octokit = new Octokit()
 const firestore = admin.firestore()
+const secretManager = new SecretManagerServiceClient()
+// The Twitter client is initialized asynchronously in the update function
+// in order to keep the async code in there and ensure initialization has
+// completed.
+let twitter: Twitter
+
+/**
+ * Accesses a secret manager secret.
+ *
+ * @param name the name of the secret in Google Cloud Secret Manager.
+ *
+ * @returns the payload of the secret.
+ */
+async function accessSecret(name: string): Promise<string> {
+  const [accessResponse] = await secretManager.accessSecretVersion({
+    name: `projects/github-tracker-b5c54/secrets/${name}/versions/latest`,
+  })
+
+  const responsePayload = accessResponse!.payload!.data!.toString()
+  return responsePayload
+}
+
+/**
+ * This list of content repos is a direct copy of https://github.com/timsneath/github-tracker/blob/f490b633b211ef6b400371d6953de7171993aedf/lib/contentRepos.dart#L10.
+ *
+ * I also contributed to that list as part of making this project.
+ *
+ * The github-tracker repo (home of the list) created by timsneath is also a major inspiration for this project.
+ */
+const contentRepos: Array<string> = [
+  '996icu/996.ICU',
+  'freeCodeCamp/freeCodeCamp',
+  'EbookFoundation/free-programming-books',
+  'sindresorhus/awesome',
+  'getify/You-Dont-Know-JS',
+  'airbnb/javascript',
+  'github/gitignore',
+  'jwasham/coding-interview-university',
+  'kamranahmedse/developer-roadmap',
+  'h5bp/html5-boilerplate',
+  'toddmotto/public-apis',
+  'resume/resume.github.com',
+  'nvbn/thefuck',
+  'h5bp/Front-end-Developer-Interview-Questions',
+  'jlevy/the-art-of-command-line',
+  'google/material-design-icons',
+  'mtdvio/every-programmer-should-know',
+  'justjavac/free-programming-books-zh_CN',
+  'vuejs/awesome-vue',
+  'josephmisiti/awesome-machine-learning',
+  'ossu/computer-science',
+  'NARKOZ/hacker-scripts',
+  'papers-we-love/papers-we-love',
+  'danistefanovic/build-your-own-x',
+  'thedaviddias/Front-End-Checklist',
+  'Trinea/android-open-project',
+  'donnemartin/system-design-primer',
+  'Snailclimb/JavaGuide',
+  'xingshaocheng/architect-awesome',
+  'FreeCodeCampChina/freecodecamp.cn',
+  'vinta/awesome-python',
+  'avelino/awesome-go',
+  'wasabeef/awesome-android-ui',
+  'vsouza/awesome-ios',
+  'enaqx/awesome-react',
+  'awesomedata/awesome-public-datasets',
+  'tiimgreen/github-cheat-sheet',
+  'CyC2018/Interview-Notebook',
+  'CyC2018/CS-Notes',
+  'kdn251/interviews',
+  'minimaxir/big-list-of-naughty-strings',
+  'k88hudson/git-flight-rules',
+  'Kickball/awesome-selfhosted',
+  'jackfrued/Python-100-Days',
+  'public-apis/public-apis',
+  'scutan90/DeepLearning-500-questions',
+  'MisterBooo/LeetCodeAnimation',
+  'awesome-selfhosted/awesome-selfhosted',
+  'yangshun/tech-interview-handbook',
+  'goldbergyoni/nodebestpractices',
+  'jaywcjlove/awesome-mac',
+  'labuladong/fucking-algorithm',
+  'aymericdamien/TensorFlow-Examples',
+  'Hack-with-Github/Awesome-Hacking',
+  '30-seconds/30-seconds-of-code',
+]
 
 /**
  * Updates the tracker (currently every 15 minutes).
@@ -28,6 +120,21 @@ exports.update = functions.pubsub
     // The start date is only use for logging purposes.
     const start = new Date()
 
+    // Load the Twitter client asynchronously on cold start.
+    // The reason we have to do this is in order to ensure that
+    // the client is loaded before execution as it depends on secrets
+    // that can only be loaded asynchronously from secret manager.
+    if (twitter === undefined) {
+      twitter = new Twitter({
+        consumer_key: await accessSecret('TWITTER_APP_CONSUMER_KEY'),
+        consumer_secret: await accessSecret('TWITTER_APP_CONSUMER_KEY_SECRET'),
+        access_token_key: await accessSecret('TWITTER_APP_ACCESS_TOKEN'),
+        access_token_secret: await accessSecret(
+          'TWITTER_APP_ACCESS_TOKEN_SECRET'
+        ),
+      })
+    }
+
     // We could also use a Firestore server timestamp instead, however,
     // we want to use the local timestamp here, so that it represents the
     // precise time we made the search request.
@@ -43,14 +150,16 @@ exports.update = functions.pubsub
       per_page = 100
     // We assume that the requests are successful and do not care about any
     // other information that comes with the response.
-    const items = (
-      await octokit.search.repos({ q, sort, per_page, page: 1 })
-    ).data.items.concat(
+    const repos: Array<Repo> = []
+    repos.concat(
+      (await octokit.search.repos({ q, sort, per_page, page: 1 })).data.items
+    )
+    repos.concat(
       (await octokit.search.repos({ q, sort, per_page, page: 2 })).data.items
     )
 
-    const softwareRepos = items.filter(
-        (item) => !contentRepos.includes(item.full_name)
+    const softwareRepos = repos.filter(
+        (repo) => !contentRepos.includes(repo.full_name)
       ),
       top100 = softwareRepos.slice(0, 100)
 
@@ -131,6 +240,8 @@ exports.update = functions.pubsub
 
     await batch.commit()
 
+    await tweetTopRepo(top100[0])
+
     functions.logger.info(
       `Started update at ${start} and ended at ${new Date()}.`
     )
@@ -170,66 +281,12 @@ async function getDaysAgoDoc(
 }
 
 /**
- * This list of content repos is a direct copy of https://github.com/timsneath/github-tracker/blob/f490b633b211ef6b400371d6953de7171993aedf/lib/contentRepos.dart#L10.
+ * Posts a tweet about the most starred repo.
  *
- * I also contributed to that list as part of making this project.
- *
- * The github-tracker repo (home of the list) created by timsneath is also a major inspiration for this project.
+ * @param repo the top repo.
  */
-const contentRepos: Array<string> = [
-  '996icu/996.ICU',
-  'freeCodeCamp/freeCodeCamp',
-  'EbookFoundation/free-programming-books',
-  'sindresorhus/awesome',
-  'getify/You-Dont-Know-JS',
-  'airbnb/javascript',
-  'github/gitignore',
-  'jwasham/coding-interview-university',
-  'kamranahmedse/developer-roadmap',
-  'h5bp/html5-boilerplate',
-  'toddmotto/public-apis',
-  'resume/resume.github.com',
-  'nvbn/thefuck',
-  'h5bp/Front-end-Developer-Interview-Questions',
-  'jlevy/the-art-of-command-line',
-  'google/material-design-icons',
-  'mtdvio/every-programmer-should-know',
-  'justjavac/free-programming-books-zh_CN',
-  'vuejs/awesome-vue',
-  'josephmisiti/awesome-machine-learning',
-  'ossu/computer-science',
-  'NARKOZ/hacker-scripts',
-  'papers-we-love/papers-we-love',
-  'danistefanovic/build-your-own-x',
-  'thedaviddias/Front-End-Checklist',
-  'Trinea/android-open-project',
-  'donnemartin/system-design-primer',
-  'Snailclimb/JavaGuide',
-  'xingshaocheng/architect-awesome',
-  'FreeCodeCampChina/freecodecamp.cn',
-  'vinta/awesome-python',
-  'avelino/awesome-go',
-  'wasabeef/awesome-android-ui',
-  'vsouza/awesome-ios',
-  'enaqx/awesome-react',
-  'awesomedata/awesome-public-datasets',
-  'tiimgreen/github-cheat-sheet',
-  'CyC2018/Interview-Notebook',
-  'CyC2018/CS-Notes',
-  'kdn251/interviews',
-  'minimaxir/big-list-of-naughty-strings',
-  'k88hudson/git-flight-rules',
-  'Kickball/awesome-selfhosted',
-  'jackfrued/Python-100-Days',
-  'public-apis/public-apis',
-  'scutan90/DeepLearning-500-questions',
-  'MisterBooo/LeetCodeAnimation',
-  'awesome-selfhosted/awesome-selfhosted',
-  'yangshun/tech-interview-handbook',
-  'goldbergyoni/nodebestpractices',
-  'jaywcjlove/awesome-mac',
-  'labuladong/fucking-algorithm',
-  'aymericdamien/TensorFlow-Examples',
-  'Hack-with-Github/Awesome-Hacking',
-  '30-seconds/30-seconds-of-code',
-]
+async function tweetTopRepo(repo: Repo) {
+  await twitter.post('statuses/update', {
+    status: `The most starred software repo on all of #GitHub is ${repo.full_name} with ${repo.stargazers_count} 🤩`,
+  })
+}
