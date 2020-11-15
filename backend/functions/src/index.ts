@@ -7,7 +7,7 @@ const octokit = new Octokit()
 const firestore = admin.firestore()
 
 /**
- * Updates the tracker.
+ * Updates the tracker (currently every 15 minutes).
  *
  * This involves three steps:
  * 1. Fetch the top 100 repos and save their data.
@@ -23,7 +23,7 @@ exports.update = functions.pubsub
   // 20000 / 200 = 100 times per day. There are 1440 minutes in a day, which means that we
   // can update every 14.4 minutes. Consequently, every 15 minutes is the maximum frequency
   // we can use for updating.
-  .schedule('15 * * * *')
+  .schedule('*/15 * * * *')
   .onRun(async (context) => {
     // The start date is only use for logging purposes.
     const start = new Date()
@@ -85,7 +85,15 @@ exports.update = functions.pubsub
           github: repo,
         }
       )
-      batch.set(firestore.doc(`stats/${repo.id}`), repo)
+
+      // TEMPORARY
+      batch.set(firestore.doc(`stats/${repo.id}`), {
+        timestamp: now,
+        position: softwareRepos.indexOf(repo) + 1,
+        // We can store the whole item we retrieved from Octokit
+        // as the GitHub data.
+        github: repo,
+      })
     }
 
     await batch.commit()
