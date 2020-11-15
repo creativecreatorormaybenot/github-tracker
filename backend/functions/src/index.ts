@@ -93,7 +93,7 @@ exports.update = functions.pubsub
         const [one, seven, twentyEight] = snapshots
 
         batch.set(firestore.doc(`stats/${repo.id}`), {
-          current: {
+          latest: {
             position: softwareRepos.indexOf(repo) + 1,
             stars: repo.stargazers_count,
           },
