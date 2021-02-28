@@ -1,6 +1,5 @@
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
-import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore'
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
 import { Octokit } from '@octokit/rest'
 import {
@@ -25,6 +24,40 @@ let twitter: Twitter
 type Repo = GetResponseDataTypeFromEndpointMethod<
   typeof octokit.search.repos
 >['items'][0]
+
+interface RepoData {
+  timestamp: admin.firestore.Timestamp
+  position: Number
+  full_name: String
+  description: String
+  html_url: String
+  stargazers_count: Number
+  owner: {
+    id: Number
+    login: String
+    html_url: String
+    avatar_url: String
+  }
+}
+
+type RepoMetadata = Pick<
+  RepoData,
+  'timestamp' | 'full_name' | 'description' | 'html_url' | 'owner'
+> &
+  Partial<RepoData>
+
+interface StatsDayData {
+  position: Number
+  stars: Number
+}
+
+interface StatsData {
+  metadata: RepoMetadata
+  latest: StatsDayData
+  oneDay?: StatsDayData
+  sevenDay?: StatsDayData
+  twentyEightDay?: StatsDayData
+}
 
 /**
  * Accesses a secret manager secret.
@@ -126,7 +159,7 @@ exports.update = functions.pubsub
         .doc(repo.id.toString())
         .collection('data')
 
-      batch.create(dataCollection.doc(), {
+      const data: RepoData = {
         timestamp: now,
         position: top100.indexOf(repo) + 1,
         full_name: repo.full_name,
@@ -139,27 +172,26 @@ exports.update = functions.pubsub
           html_url: repo.owner.html_url,
           avatar_url: repo.owner.avatar_url,
         },
-      })
+      }
+      batch.create(dataCollection.doc(), data)
+
+      // Create a metadata subset of the repo data that we can include
+      // in the stats doc.
+      const metadata: RepoMetadata = Object.assign({}, data)
+      delete metadata.position
+      delete metadata.stargazers_count
 
       const statsPromise = Promise.all([
-        getDaysAgoDoc(dataCollection, now, 1),
-        getDaysAgoDoc(dataCollection, now, 7),
-        getDaysAgoDoc(dataCollection, now, 28),
-        getLatestDoc(dataCollection),
+        getDaysAgoDoc<RepoData>(dataCollection, now, 1),
+        getDaysAgoDoc<RepoData>(dataCollection, now, 7),
+        getDaysAgoDoc<RepoData>(dataCollection, now, 28),
+        getLatestDoc<RepoData>(dataCollection),
       ]).then(async (snapshots) => {
         const [one, seven, twentyEight, latest] = snapshots
 
         // Store stats data.
-        batch.set(firestore.collection('stats').doc(`${repo.id}`), {
-          full_name: repo.full_name,
-          description: repo.description,
-          html_url: repo.html_url,
-          owner: {
-            id: repo.owner.id,
-            login: repo.owner.login,
-            html_url: repo.owner.html_url,
-            avatar_url: repo.owner.avatar_url,
-          },
+        const statsData: StatsData = {
+          metadata,
           latest: {
             position: top100.indexOf(repo) + 1,
             stars: repo.stargazers_count,
@@ -167,32 +199,33 @@ exports.update = functions.pubsub
           ...(one === undefined
             ? {}
             : {
-                '1day': {
-                  position: one.get('position'),
-                  stars: one.get('stargazers_count'),
+                oneDay: {
+                  position: one.data()!.position,
+                  stars: one.data()!.stargazers_count,
                 },
               }),
           ...(seven === undefined
             ? {}
             : {
-                '7day': {
-                  position: seven.get('position'),
-                  stars: seven.get('stargazers_count'),
+                sevenDay: {
+                  position: seven.data()!.position,
+                  stars: seven.data()!.stargazers_count,
                 },
               }),
           ...(twentyEight === undefined
             ? {}
             : {
-                '28day': {
-                  position: twentyEight.get('position'),
-                  stars: twentyEight.get('stargazers_count'),
+                twentyEightDay: {
+                  position: twentyEight.data()!.position,
+                  stars: twentyEight.data()!.stargazers_count,
                 },
               }),
-        })
+        }
+        batch.set(firestore.collection('stats').doc(`${repo.id}`), statsData)
 
         if (latest !== undefined) {
           // Await tracking milestones for the repo.
-          await trackRepoMilestones(repo, latest)
+          await trackRepoMilestones(repo, latest.data()!)
         }
       })
       batchingPromises.push(statsPromise)
@@ -221,11 +254,11 @@ exports.update = functions.pubsub
  *
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
-async function getDaysAgoDoc(
+async function getDaysAgoDoc<T>(
   collection: admin.firestore.CollectionReference,
   now: admin.firestore.Timestamp,
   days: number
-): Promise<admin.firestore.DocumentSnapshot | undefined> {
+): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
   const daysAgoMillis = now.toMillis() - 1000 * 60 * 60 * 24 * days
   const result = await collection
     .where(
@@ -243,7 +276,9 @@ async function getDaysAgoDoc(
     )
     .limit(1)
     .get()
-  return result.docs.length === 0 ? undefined : result.docs[0]
+  return result.docs.length === 0
+    ? undefined
+    : (result.docs[0] as admin.firestore.DocumentSnapshot<T>)
 }
 
 /**
@@ -253,11 +288,13 @@ async function getDaysAgoDoc(
  *
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
-async function getLatestDoc(
+async function getLatestDoc<T>(
   collection: admin.firestore.CollectionReference
-): Promise<admin.firestore.DocumentSnapshot | undefined> {
+): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
   const result = await collection.orderBy('timestamp', 'desc').limit(1).get()
-  return result.docs.length === 0 ? undefined : result.docs[0]
+  return result.docs.length === 0
+    ? undefined
+    : (result.docs[0] as admin.firestore.DocumentSnapshot<T>)
 }
 
 /**
@@ -315,8 +352,8 @@ ${repo.html_url}`,
  * @param repo the current repo data from GitHub.
  * @param latest the latest data we have stored about the repo.
  */
-async function trackRepoMilestones(repo: Repo, latest: DocumentSnapshot) {
-  const previousStars: Number = latest.get('stargazers_count')
+async function trackRepoMilestones(repo: Repo, latest: RepoData) {
+  const previousStars: Number = latest.stargazers_count
   const currentStars = repo.stargazers_count
 
   if (currentStars < previousStars) return
