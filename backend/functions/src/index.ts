@@ -30,6 +30,7 @@ interface RepoData {
   position: Number
   full_name: String
   description: String
+  language: String | null
   html_url: String
   stargazers_count: Number
   owner: {
@@ -42,7 +43,7 @@ interface RepoData {
 
 type RepoMetadata = Pick<
   RepoData,
-  'timestamp' | 'full_name' | 'description' | 'html_url' | 'owner'
+  'timestamp' | 'full_name' | 'description' | 'html_url' | 'owner' | 'language'
 > &
   Partial<RepoData>
 
@@ -164,6 +165,7 @@ exports.update = functions.pubsub
         position: top100.indexOf(repo) + 1,
         full_name: repo.full_name,
         description: repo.description,
+        language: repo.language,
         html_url: repo.html_url,
         stargazers_count: repo.stargazers_count,
         owner: {
@@ -332,15 +334,15 @@ async function tweetTopRepo(repo: Repo) {
     mantissa: 1,
     optionalMantissa: true,
   })
-  let secondHashtag = ''
+  let ownerHashtag = ''
   if (!repoTag.startsWith('@') && repo.name !== repo.owner.login) {
-    secondHashtag = ` #${repo.owner.login}`
+    ownerHashtag = ` #${repo.owner.login}`
   }
   await twitter.post('statuses/update', {
     status: `
 The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
 
-#${repo.name}${secondHashtag}
+#${repo.name}${ownerHashtag} #${repo.language}
 ${repo.html_url}`,
   })
 }
@@ -372,16 +374,16 @@ async function trackRepoMilestones(repo: Repo, latest: RepoData) {
       mantissa: 3,
       optionalMantissa: true,
     })
-    let secondHashtag = ''
+    let ownerHashtag = ''
     if (!repoTag.startsWith('@') && repo.name !== repo.owner.login) {
-      secondHashtag = ` #${repo.owner.login}`
+      ownerHashtag = ` #${repo.owner.login}`
     }
     // Tweet about milestone.
     await twitter.post('statuses/update', {
       status: `
 The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
 
-Way to go and congrats on reaching this epic milestone 💪 #${repo.name}${secondHashtag}
+Way to go and congrats on reaching this epic milestone 💪 #${repo.name}${ownerHashtag} #${repo.language}
 ${repo.html_url}
 `,
     })
