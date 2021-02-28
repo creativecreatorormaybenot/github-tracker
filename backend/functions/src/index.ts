@@ -333,7 +333,7 @@ async function trackRepoMilestones(repo: Repo, latest: DocumentSnapshot) {
     // Tweet about milestone.
     await twitter.post('statuses/update', {
       status: `
-${repoTag} just crossed the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
+The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
 
 Way to go and congrats on reaching this epic milestone 💪 #${repo.name}
 ${repo.html_url}
