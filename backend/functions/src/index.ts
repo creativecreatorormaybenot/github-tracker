@@ -193,7 +193,9 @@ exports.update = functions.pubsub
     await Promise.all(batchingPromises)
     await batch.commit()
 
-    await tweetTopRepo(top100[0])
+    if (false) {
+      await tweetTopRepo(top100[0])
+    }
 
     functions.logger.debug(
       `Started update at ${start} and ended at ${new Date()}.`
@@ -258,8 +260,9 @@ async function tweetTopRepo(repo: Repo) {
   })
   await twitter.post('statuses/update', {
     status: `
-The currently most starred software repo on all of #GitHub is ${repoTag} with ${formattedStars} stars 🤩
+The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
 
-#${repo.name} ${repo.html_url}`,
+#${repo.name}
+${repo.html_url}`,
   })
 }
