@@ -267,7 +267,7 @@ async function getLatestDoc(
  *
  * @returns a string repo tag.
  */
-async function repoTag(repo: Repo): Promise<String> {
+async function getRepoTag(repo: Repo): Promise<String> {
   const org = (await octokit.orgs.get({ org: repo.owner.login })).data
   let repoTag
   if (org.twitter_username === null) {
@@ -284,9 +284,9 @@ async function repoTag(repo: Repo): Promise<String> {
  * @param repo the top repo.
  */
 async function tweetTopRepo(repo: Repo) {
-  const tag = await repoTag(repo)
+  const repoTag = await getRepoTag(repo)
   functions.logger.info(
-    `Tweeting about top repo ${tag} at ${repo.stargazers_count} stars.`
+    `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars.`
   )
 
   const formattedStars = numbro(repo.stargazers_count).format({
@@ -296,7 +296,7 @@ async function tweetTopRepo(repo: Repo) {
   })
   await twitter.post('statuses/update', {
     status: `
-The currently most starred software repo on #GitHub is ${tag} with ${formattedStars} 🌟
+The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
 
 #${repo.name}
 ${repo.html_url}`,
@@ -320,9 +320,9 @@ async function trackRepoMilestones(repo: Repo, latest: DocumentSnapshot) {
     if (currentStars < milestone) break
     if (previousStars >= milestone) continue
 
-    const tag = await repoTag(repo)
+    const repoTag = await getRepoTag(repo)
     functions.logger.info(
-      `Tweeting about ${tag} reaching the ${milestone} milestone.`
+      `Tweeting about ${repoTag} reaching the ${milestone} milestone.`
     )
 
     const formattedMilestone = numbro(milestone).format({
@@ -333,7 +333,7 @@ async function trackRepoMilestones(repo: Repo, latest: DocumentSnapshot) {
     // Tweet about milestone.
     await twitter.post('statuses/update', {
       status: `
-${tag} just reached the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
+${repoTag} just reached the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
 
 Way to go and congrats on reaching this epic milestone 💪 #${repo.name}
 ${repo.html_url}
