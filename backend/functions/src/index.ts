@@ -1,11 +1,13 @@
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 import { Octokit } from '@octokit/rest'
-import { Endpoints, SearchReposResponseData } from '@octokit/types'
+import {
+  Endpoints,
+  GetResponseDataTypeFromEndpointMethod,
+} from '@octokit/types'
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
 import Twitter, { TwitterOptions } from 'twitter-lite'
-
-type Repo = SearchReposResponseData['items'][0]
+import { contentRepos } from './content-repos'
 
 // Initialize clients that can be initialized synchronously.
 admin.initializeApp()
@@ -16,6 +18,10 @@ const secretManager = new SecretManagerServiceClient()
 // in order to keep the async code in there and ensure initialization has
 // completed.
 let twitter: Twitter
+
+type Repo = GetResponseDataTypeFromEndpointMethod<
+  typeof octokit.search.repos
+>['items'][0]
 
 /**
  * Accesses a secret manager secret.
@@ -34,71 +40,6 @@ async function accessSecret(name: string): Promise<string> {
 }
 
 /**
- * This list of content repos is a direct copy of https://github.com/timsneath/github-tracker/blob/f490b633b211ef6b400371d6953de7171993aedf/lib/contentRepos.dart#L10.
- *
- * I also contributed to that list as part of making this project.
- *
- * The github-tracker repo (home of the list) created by timsneath is also a major inspiration for this project.
- */
-const contentRepos: Array<string> = [
-  '996icu/996.ICU',
-  'freeCodeCamp/freeCodeCamp',
-  'EbookFoundation/free-programming-books',
-  'sindresorhus/awesome',
-  'getify/You-Dont-Know-JS',
-  'airbnb/javascript',
-  'github/gitignore',
-  'jwasham/coding-interview-university',
-  'kamranahmedse/developer-roadmap',
-  'h5bp/html5-boilerplate',
-  'toddmotto/public-apis',
-  'resume/resume.github.com',
-  'nvbn/thefuck',
-  'h5bp/Front-end-Developer-Interview-Questions',
-  'jlevy/the-art-of-command-line',
-  'google/material-design-icons',
-  'mtdvio/every-programmer-should-know',
-  'justjavac/free-programming-books-zh_CN',
-  'vuejs/awesome-vue',
-  'josephmisiti/awesome-machine-learning',
-  'ossu/computer-science',
-  'NARKOZ/hacker-scripts',
-  'papers-we-love/papers-we-love',
-  'danistefanovic/build-your-own-x',
-  'thedaviddias/Front-End-Checklist',
-  'Trinea/android-open-project',
-  'donnemartin/system-design-primer',
-  'Snailclimb/JavaGuide',
-  'xingshaocheng/architect-awesome',
-  'FreeCodeCampChina/freecodecamp.cn',
-  'vinta/awesome-python',
-  'avelino/awesome-go',
-  'wasabeef/awesome-android-ui',
-  'vsouza/awesome-ios',
-  'enaqx/awesome-react',
-  'awesomedata/awesome-public-datasets',
-  'tiimgreen/github-cheat-sheet',
-  'CyC2018/Interview-Notebook',
-  'CyC2018/CS-Notes',
-  'kdn251/interviews',
-  'minimaxir/big-list-of-naughty-strings',
-  'k88hudson/git-flight-rules',
-  'Kickball/awesome-selfhosted',
-  'jackfrued/Python-100-Days',
-  'public-apis/public-apis',
-  'scutan90/DeepLearning-500-questions',
-  'MisterBooo/LeetCodeAnimation',
-  'awesome-selfhosted/awesome-selfhosted',
-  'yangshun/tech-interview-handbook',
-  'goldbergyoni/nodebestpractices',
-  'jaywcjlove/awesome-mac',
-  'labuladong/fucking-algorithm',
-  'aymericdamien/TensorFlow-Examples',
-  'Hack-with-Github/Awesome-Hacking',
-  '30-seconds/30-seconds-of-code',
-]
-
-/**
  * Updates the tracker (currently every 15 minutes).
  *
  * This involves three steps:
@@ -107,18 +48,7 @@ const contentRepos: Array<string> = [
  * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
 exports.update = functions.pubsub
-  // We update every 15 minutes in order to stay within the free tier of Cloud Firestore.
-  // We have 20k free writes per day. Every update call will trigger exactly 200 writes
-  // and up to 100 deletes. The delete limit is also 20k, so we do not need to consider
-  // deletes (as we will never perform more deletes than writes but have twice the limit).
-  // In order to not surpass the free limit of 20k reads, we can therefore update
-  // 20000 / 200 = 100 times per day. There are 1440 minutes in a day, which means that we
-  // can update every 14.4 minutes. Consequently, every 15 minutes is the maximum frequency
-  // we can use for updating.
-  .schedule('*/57 * * * *')
-  // Not using the actual schedule for debugging purposed. The free limits would not be
-  // sufficient because I ran the function manually a bunch.
-  // .schedule('*/15 * * * *')
+  .schedule('*/42 * * * *')
   .onRun(async (context) => {
     // The start date is only use for logging purposes.
     const start = new Date()
@@ -196,9 +126,16 @@ exports.update = functions.pubsub
       batch.create(dataCollection.doc(), {
         timestamp: now,
         position: softwareRepos.indexOf(repo) + 1,
-        // We can store the whole item we retrieved from Octokit
-        // as the GitHub data.
-        github: repo,
+        full_name: repo.full_name,
+        description: repo.description,
+        html_url: repo.html_url,
+        stargazers_count: repo.stargazers_count,
+        owner: {
+          id: repo.owner.id,
+          login: repo.owner.login,
+          html_url: repo.owner.html_url,
+          avatar_url: repo.owner.avatar_url,
+        },
       })
 
       const statsPromise = Promise.all([
@@ -209,6 +146,15 @@ exports.update = functions.pubsub
         const [one, seven, twentyEight] = snapshots
 
         batch.set(firestore.collection('stats').doc(`${repo.id}`), {
+          full_name: repo.full_name,
+          description: repo.description,
+          html_url: repo.html_url,
+          owner: {
+            id: repo.owner.id,
+            login: repo.owner.login,
+            html_url: repo.owner.html_url,
+            avatar_url: repo.owner.avatar_url,
+          },
           latest: {
             position: softwareRepos.indexOf(repo) + 1,
             stars: repo.stargazers_count,
@@ -218,7 +164,7 @@ exports.update = functions.pubsub
             : {
                 '1day': {
                   position: one.get('position'),
-                  stars: one.get('stars'),
+                  stars: one.get('stargazers_count'),
                 },
               }),
           ...(seven === undefined
@@ -226,7 +172,7 @@ exports.update = functions.pubsub
             : {
                 '7day': {
                   position: seven.get('position'),
-                  stars: seven.get('stars'),
+                  stars: seven.get('stargazers_count'),
                 },
               }),
           ...(twentyEight === undefined
@@ -234,7 +180,7 @@ exports.update = functions.pubsub
             : {
                 '28day': {
                   position: twentyEight.get('position'),
-                  stars: twentyEight.get('stars'),
+                  stars: twentyEight.get('stargazers_count'),
                 },
               }),
         })
@@ -244,8 +190,9 @@ exports.update = functions.pubsub
     // This way we can run all the 300 document gets for the historical
     // stats in parallel and not have the function timeout.
     await Promise.all(batchingPromises)
-
     await batch.commit()
+
+    tweetTopRepo(repos[0])
 
     functions.logger.debug(
       `Started update at ${start} and ended at ${new Date()}.`
@@ -290,8 +237,19 @@ async function getDaysAgoDoc(
  *
  * @param repo the top repo.
  */
-// async function tweetTopRepo(repo: Repo) {
-//   await twitter.post('statuses/update', {
-//     status: `The most starred software repo on all of #GitHub is *${repo.full_name}* with ${repo.stargazers_count} stars 🤩\n\n#${repo.name} ${repo.html_url}`,
-//   })
-// }
+async function tweetTopRepo(repo: Repo) {
+  const org = (await octokit.orgs.get({ org: repo.owner.login })).data
+  let repoTag
+  if (org.twitter_username == undefined) {
+    repoTag = `*${repo.full_name}*`
+  } else {
+    repoTag = `@${org.twitter_username} /${repo.name}`
+  }
+
+  await twitter.post('statuses/update', {
+    status: `
+The currently most starred software repo on all of #GitHub is ${repoTag} with ${repo.stargazers_count} stars 🤩
+
+#${repo.name} ${repo.html_url}`,
+  })
+}
