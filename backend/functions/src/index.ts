@@ -237,7 +237,7 @@ exports.update = functions.pubsub
     await Promise.all(batchingPromises)
     await batch.commit()
 
-    if (false) {
+    if (true) {
       // We do not want to spam about the top repo.
       await tweetTopRepo(top100[0])
     }
@@ -331,7 +331,7 @@ function getHashtags(repo: Repo): String {
     hashtags.push(`#${repo.name}`)
   }
   if (
-    repo.language != null &&
+    repo.language !== null &&
     repo.language !== repo.owner.login &&
     repo.language !== repo.name
   ) {
