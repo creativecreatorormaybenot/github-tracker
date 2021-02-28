@@ -26,7 +26,7 @@ type Repo = GetResponseDataTypeFromEndpointMethod<
 >['items'][0]
 
 interface RepoData {
-  timestamp: FirebaseFirestore.Timestamp
+  timestamp: admin.firestore.Timestamp
   position: Number
   full_name: String
   description: String
@@ -108,7 +108,7 @@ exports.update = functions.pubsub
     // We could also use a Firestore server timestamp instead, however,
     // we want to use the local timestamp here, so that it represents the
     // precise time we made the search request.
-    const now = FirebaseFirestore.Timestamp.now()
+    const now = admin.firestore.Timestamp.now()
 
     // 32986 is the precise amount of stars that exactly only 200 repos
     // had achieved at the time I wrote this code. There were 201 repos
@@ -255,30 +255,30 @@ exports.update = functions.pubsub
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getDaysAgoDoc<T>(
-  collection: FirebaseFirestore.CollectionReference,
-  now: FirebaseFirestore.Timestamp,
+  collection: admin.firestore.CollectionReference,
+  now: admin.firestore.Timestamp,
   days: number
-): Promise<FirebaseFirestore.DocumentSnapshot<T> | undefined> {
+): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
   const daysAgoMillis = now.toMillis() - 1000 * 60 * 60 * 24 * days
   const result = await collection
     .where(
       'timestamp',
       '>=',
       // Give thirty seconds of slack for potential function execution deviations.
-      FirebaseFirestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 30)
+      admin.firestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 30)
     )
     .where(
       'timestamp',
       '<',
       // Give one hour of slack in case there was an issue with storing the data.
       // If the data is more than an hour old, we declare it as unusable.
-      FirebaseFirestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
+      admin.firestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
     )
     .limit(1)
     .get()
   return result.docs.length === 0
     ? undefined
-    : (result.docs[0] as FirebaseFirestore.DocumentSnapshot<T>)
+    : (result.docs[0] as admin.firestore.DocumentSnapshot<T>)
 }
 
 /**
@@ -289,12 +289,12 @@ async function getDaysAgoDoc<T>(
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getLatestDoc<T>(
-  collection: FirebaseFirestore.CollectionReference
-): Promise<FirebaseFirestore.DocumentSnapshot<T> | undefined> {
+  collection: admin.firestore.CollectionReference
+): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
   const result = await collection.orderBy('timestamp', 'desc').limit(1).get()
   return result.docs.length === 0
     ? undefined
-    : (result.docs[0] as FirebaseFirestore.DocumentSnapshot<T>)
+    : (result.docs[0] as admin.firestore.DocumentSnapshot<T>)
 }
 
 /**
