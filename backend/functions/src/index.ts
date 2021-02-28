@@ -118,7 +118,7 @@ exports.update = functions.pubsub
     const batch = firestore.batch()
 
     const batchingPromises: Array<Promise<any>> = []
-    for (const repo of softwareRepos) {
+    for (const repo of top100) {
       const dataCollection = firestore
         .collection('repos')
         // We use the repo ID because we want to make sure that we
@@ -128,7 +128,7 @@ exports.update = functions.pubsub
 
       batch.create(dataCollection.doc(), {
         timestamp: now,
-        position: softwareRepos.indexOf(repo) + 1,
+        position: top100.indexOf(repo) + 1,
         full_name: repo.full_name,
         description: repo.description,
         html_url: repo.html_url,
@@ -161,7 +161,7 @@ exports.update = functions.pubsub
             avatar_url: repo.owner.avatar_url,
           },
           latest: {
-            position: softwareRepos.indexOf(repo) + 1,
+            position: top100.indexOf(repo) + 1,
             stars: repo.stargazers_count,
           },
           ...(one === undefined
