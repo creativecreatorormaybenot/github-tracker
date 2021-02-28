@@ -294,11 +294,15 @@ async function tweetTopRepo(repo: Repo) {
     mantissa: 1,
     optionalMantissa: true,
   })
+  let secondHashtag = ''
+  if (!repoTag.startsWith('@') && repo.name != repo.owner.login) {
+    secondHashtag = ` #${repo.owner.login}`
+  }
   await twitter.post('statuses/update', {
     status: `
 The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
 
-#${repo.name}
+#${repo.name}${secondHashtag}
 ${repo.html_url}`,
   })
 }
@@ -330,12 +334,16 @@ async function trackRepoMilestones(repo: Repo, latest: DocumentSnapshot) {
       mantissa: 3,
       optionalMantissa: true,
     })
+    let secondHashtag = ''
+    if (!repoTag.startsWith('@') && repo.name != repo.owner.login) {
+      secondHashtag = ` #${repo.owner.login}`
+    }
     // Tweet about milestone.
     await twitter.post('statuses/update', {
       status: `
 The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
 
-Way to go and congrats on reaching this epic milestone 💪 #${repo.name}
+Way to go and congrats on reaching this epic milestone 💪 #${repo.name}${secondHashtag}
 ${repo.html_url}
 `,
     })
