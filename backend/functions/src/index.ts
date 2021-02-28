@@ -26,7 +26,7 @@ type Repo = GetResponseDataTypeFromEndpointMethod<
 >['items'][0]
 
 interface RepoData {
-  timestamp: admin.firestore.Timestamp
+  timestamp: FirebaseFirestore.Timestamp
   position: Number
   full_name: String
   description: String
@@ -54,9 +54,9 @@ interface StatsDayData {
 interface StatsData {
   metadata: RepoMetadata
   latest: StatsDayData
-  '1day'?: StatsDayData
-  '7day'?: StatsDayData
-  '28day'?: StatsDayData
+  oneDay?: StatsDayData
+  sevenDay?: StatsDayData
+  twentyEightDay?: StatsDayData
 }
 
 /**
@@ -108,7 +108,7 @@ exports.update = functions.pubsub
     // We could also use a Firestore server timestamp instead, however,
     // we want to use the local timestamp here, so that it represents the
     // precise time we made the search request.
-    const now = admin.firestore.Timestamp.now()
+    const now = FirebaseFirestore.Timestamp.now()
 
     // 32986 is the precise amount of stars that exactly only 200 repos
     // had achieved at the time I wrote this code. There were 201 repos
@@ -199,7 +199,7 @@ exports.update = functions.pubsub
           ...(one === undefined
             ? {}
             : {
-                '1day': {
+                oneDay: {
                   position: one.data()!.position,
                   stars: one.data()!.stargazers_count,
                 },
@@ -207,7 +207,7 @@ exports.update = functions.pubsub
           ...(seven === undefined
             ? {}
             : {
-                '7day': {
+                sevenDay: {
                   position: seven.data()!.position,
                   stars: seven.data()!.stargazers_count,
                 },
@@ -215,7 +215,7 @@ exports.update = functions.pubsub
           ...(twentyEight === undefined
             ? {}
             : {
-                '28day': {
+                twentyEightDay: {
                   position: twentyEight.data()!.position,
                   stars: twentyEight.data()!.stargazers_count,
                 },
@@ -255,30 +255,30 @@ exports.update = functions.pubsub
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getDaysAgoDoc<T>(
-  collection: admin.firestore.CollectionReference,
-  now: admin.firestore.Timestamp,
+  collection: FirebaseFirestore.CollectionReference,
+  now: FirebaseFirestore.Timestamp,
   days: number
-): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
+): Promise<FirebaseFirestore.DocumentSnapshot<T> | undefined> {
   const daysAgoMillis = now.toMillis() - 1000 * 60 * 60 * 24 * days
   const result = await collection
     .where(
       'timestamp',
       '>=',
       // Give thirty seconds of slack for potential function execution deviations.
-      admin.firestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 30)
+      FirebaseFirestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 30)
     )
     .where(
       'timestamp',
       '<',
       // Give one hour of slack in case there was an issue with storing the data.
       // If the data is more than an hour old, we declare it as unusable.
-      admin.firestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
+      FirebaseFirestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
     )
     .limit(1)
     .get()
   return result.docs.length === 0
     ? undefined
-    : (result.docs[0] as admin.firestore.DocumentSnapshot<T>)
+    : (result.docs[0] as FirebaseFirestore.DocumentSnapshot<T>)
 }
 
 /**
@@ -289,12 +289,12 @@ async function getDaysAgoDoc<T>(
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getLatestDoc<T>(
-  collection: admin.firestore.CollectionReference
-): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
+  collection: FirebaseFirestore.CollectionReference
+): Promise<FirebaseFirestore.DocumentSnapshot<T> | undefined> {
   const result = await collection.orderBy('timestamp', 'desc').limit(1).get()
   return result.docs.length === 0
     ? undefined
-    : (result.docs[0] as admin.firestore.DocumentSnapshot<T>)
+    : (result.docs[0] as FirebaseFirestore.DocumentSnapshot<T>)
 }
 
 /**
@@ -352,10 +352,7 @@ ${repo.html_url}`,
  * @param repo the current repo data from GitHub.
  * @param latest the latest data we have stored about the repo.
  */
-async function trackRepoMilestones(
-  repo: Repo,
-  latest: RepoData
-) {
+async function trackRepoMilestones(repo: Repo, latest: RepoData) {
   const previousStars: Number = latest.stargazers_count
   const currentStars = repo.stargazers_count
 
