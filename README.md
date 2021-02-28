@@ -1,4 +1,6 @@
-# github-tracker
+# github-tracker [![GitHub Tracker on Twitter](https://img.shields.io/twitter/follow/GitHubTracker?label=GitHub%20Tracker&style=social)][GitHub Tracker Twitter] [![creativecreatorormaybenot on Twitter](https://img.shields.io/twitter/follow/creativemaybeno?label=creativecreatorormaybenot&style=social)][creativemaybeno Twitter]
+
+Tracking the top 100 GitHub software repos.
 
 ## Costs
 
@@ -10,3 +12,5 @@ This **limits** how much/often I can process data for GitHub Tracker etc. as I c
 I am not sure what to do about this yet. [Let me know][dm] if you have any ideas :)
 
 [dm]: https://creativemaybeno.dev
+[GitHub Tracker Twitter]: https://twitter.com/GitHubTracker
+[creativemaybeno Twitter]: https://twitter.com/creativemaybeno
