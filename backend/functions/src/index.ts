@@ -208,7 +208,7 @@ exports.update = functions.pubsub
       ]).then((snapshots) => {
         const [one, seven, twentyEight] = snapshots
 
-        batch.set(firestore.doc(`stats/${repo.id}`), {
+        batch.set(firestore.collection('stats').doc(`${repo.id}`), {
           latest: {
             position: softwareRepos.indexOf(repo) + 1,
             stars: repo.stargazers_count,
@@ -247,7 +247,7 @@ exports.update = functions.pubsub
 
     await batch.commit()
 
-    functions.logger.info(
+    functions.logger.debug(
       `Started update at ${start} and ended at ${new Date()}.`
     )
   })
@@ -290,8 +290,8 @@ async function getDaysAgoDoc(
  *
  * @param repo the top repo.
  */
-async function tweetTopRepo(repo: Repo) {
-  await twitter.post('statuses/update', {
-    status: `The most starred software repo on all of #GitHub is *${repo.full_name}* with ${repo.stargazers_count} stars 🤩\n\n#${repo.name} ${repo.html_url}`,
-  })
-}
+// async function tweetTopRepo(repo: Repo) {
+//   await twitter.post('statuses/update', {
+//     status: `The most starred software repo on all of #GitHub is *${repo.full_name}* with ${repo.stargazers_count} stars 🤩\n\n#${repo.name} ${repo.html_url}`,
+//   })
+// }
