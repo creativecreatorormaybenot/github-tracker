@@ -1,4 +1,4 @@
-# github-tracker [![GitHub Tracker on Twitter](https://img.shields.io/twitter/follow/GitHubTracker?label=GitHub%20Tracker&style=social)][GitHub Tracker Twitter] [![creativecreatorormaybenot on Twitter](https://img.shields.io/twitter/follow/creativemaybeno?label=creativecreatorormaybenot&style=social)][creativemaybeno Twitter]
+# github-tracker [![GitHub Tracker on Twitter](https://img.shields.io/twitter/follow/GitHubTracker?label=Follow%20GitHub%20Tracker&style=social)][GitHub Tracker Twitter] [![creativecreatorormaybenot on Twitter](https://img.shields.io/twitter/follow/creativemaybeno?label=Follow%20creativecreatorormaybenot&style=social)][creativemaybeno Twitter]
 
 Tracking the top 100 GitHub software repos.
 
