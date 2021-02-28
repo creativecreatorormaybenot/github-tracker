@@ -43,7 +43,7 @@ async function accessSecret(name: string): Promise<string> {
 }
 
 /**
- * Updates the tracker (currently every 15 minutes).
+ * Updates the tracker (currently every 30 minutes).
  *
  * This involves three steps:
  * 1. Fetch the top 100 repos and save their data.
@@ -51,7 +51,7 @@ async function accessSecret(name: string): Promise<string> {
  * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
 exports.update = functions.pubsub
-  .schedule('*/42 * * * *')
+  .schedule('*/30 * * * *')
   .onRun(async (context) => {
     // The start date is only use for logging purposes.
     const start = new Date()
@@ -231,7 +231,8 @@ async function getDaysAgoDoc(
     .where(
       'timestamp',
       '>=',
-      admin.firestore.Timestamp.fromMillis(daysAgoMillis)
+      // Give thirty seconds of slack for potential function execution deviations.
+      admin.firestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 30)
     )
     .where(
       'timestamp',
@@ -295,7 +296,7 @@ async function tweetTopRepo(repo: Repo) {
     optionalMantissa: true,
   })
   let secondHashtag = ''
-  if (!repoTag.startsWith('@') && repo.name != repo.owner.login) {
+  if (!repoTag.startsWith('@') && repo.name !== repo.owner.login) {
     secondHashtag = ` #${repo.owner.login}`
   }
   await twitter.post('statuses/update', {
@@ -335,7 +336,7 @@ async function trackRepoMilestones(repo: Repo, latest: DocumentSnapshot) {
       optionalMantissa: true,
     })
     let secondHashtag = ''
-    if (!repoTag.startsWith('@') && repo.name != repo.owner.login) {
+    if (!repoTag.startsWith('@') && repo.name !== repo.owner.login) {
       secondHashtag = ` #${repo.owner.login}`
     }
     // Tweet about milestone.
