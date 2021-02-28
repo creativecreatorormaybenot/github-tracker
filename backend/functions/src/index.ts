@@ -237,7 +237,7 @@ exports.update = functions.pubsub
     await Promise.all(batchingPromises)
     await batch.commit()
 
-    if (true) {
+    if (false) {
       // We do not want to spam about the top repo.
       await tweetTopRepo(top100[0])
     }
