@@ -19,6 +19,7 @@
     "@octokit/types": "^6.11.0",
     "firebase-admin": "^9.5.0",
     "firebase-functions": "^3.13.2",
+    "numbro": "^2.3.2",
     "twitter-lite": "^1.1.0"
   },
   "devDependencies": {

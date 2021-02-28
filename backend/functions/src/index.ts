@@ -8,6 +8,7 @@ import {
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
 import Twitter, { TwitterOptions } from 'twitter-lite'
 import { contentRepos } from './content-repos'
+import numbro from 'numbro'
 
 // Initialize clients that can be initialized synchronously.
 admin.initializeApp()
@@ -192,7 +193,7 @@ exports.update = functions.pubsub
     await Promise.all(batchingPromises)
     await batch.commit()
 
-    await tweetTopRepo(repos[0])
+    await tweetTopRepo(top100[0])
 
     functions.logger.debug(
       `Started update at ${start} and ended at ${new Date()}.`
@@ -246,9 +247,18 @@ async function tweetTopRepo(repo: Repo) {
     repoTag = `@${org.twitter_username} /${repo.name}`
   }
 
+  functions.logger.info(
+    `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars.`
+  )
+
+  const formattedStars = numbro(repo.stargazers_count).format({
+    average: true,
+    mantissa: 1,
+    optionalMantissa: true,
+  })
   await twitter.post('statuses/update', {
     status: `
-The currently most starred software repo on all of #GitHub is ${repoTag} with ${repo.stargazers_count} stars 🤩
+The currently most starred software repo on all of #GitHub is ${repoTag} with ${formattedStars} stars 🤩
 
 #${repo.name} ${repo.html_url}`,
   })
