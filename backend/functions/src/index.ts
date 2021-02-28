@@ -1,14 +1,16 @@
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
+import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore'
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
 import { Octokit } from '@octokit/rest'
 import {
   Endpoints,
   GetResponseDataTypeFromEndpointMethod,
 } from '@octokit/types'
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
 import Twitter, { TwitterOptions } from 'twitter-lite'
-import { contentRepos } from './content-repos'
 import numbro from 'numbro'
+import { contentRepos } from './content-repos'
+import { milestones } from './milestones'
 
 // Initialize clients that can be initialized synchronously.
 admin.initializeApp()
@@ -143,9 +145,11 @@ exports.update = functions.pubsub
         getDaysAgoDoc(dataCollection, now, 1),
         getDaysAgoDoc(dataCollection, now, 7),
         getDaysAgoDoc(dataCollection, now, 28),
-      ]).then((snapshots) => {
-        const [one, seven, twentyEight] = snapshots
+        getLatestDoc(dataCollection),
+      ]).then(async (snapshots) => {
+        const [one, seven, twentyEight, latest] = snapshots
 
+        // Store stats data.
         batch.set(firestore.collection('stats').doc(`${repo.id}`), {
           full_name: repo.full_name,
           description: repo.description,
@@ -185,6 +189,11 @@ exports.update = functions.pubsub
                 },
               }),
         })
+
+        if (latest !== undefined) {
+          // Await tracking milestones for the repo.
+          await trackRepoMilestones(repo, latest)
+        }
       })
       batchingPromises.push(statsPromise)
     }
@@ -194,6 +203,7 @@ exports.update = functions.pubsub
     await batch.commit()
 
     if (false) {
+      // We do not want to spam about the top repo.
       await tweetTopRepo(top100[0])
     }
 
@@ -236,11 +246,28 @@ async function getDaysAgoDoc(
 }
 
 /**
- * Posts a tweet about the most starred repo.
+ * Get the latest doc in the given collection.
  *
- * @param repo the top repo.
+ * @param collection the data collection, where the queried docs have a timestamp field.
+ *
+ * @returns undefined if there is no such recorded data or one matching snapshot.
  */
-async function tweetTopRepo(repo: Repo) {
+async function getLatestDoc(
+  collection: admin.firestore.CollectionReference
+): Promise<admin.firestore.DocumentSnapshot | undefined> {
+  const result = await collection.orderBy('timestamp', 'desc').limit(1).get()
+  return result.docs.length === 0 ? undefined : result.docs[0]
+}
+
+/**
+ * Generates a repo tag for the given repo that will include the organization's Twitter
+ * tag if available and the repo's full name otherwise.
+ *
+ * @param repo the repo data.
+ *
+ * @returns a string repo tag.
+ */
+async function repoTag(repo: Repo): Promise<String> {
   const org = (await octokit.orgs.get({ org: repo.owner.login })).data
   let repoTag
   if (org.twitter_username === null) {
@@ -248,9 +275,18 @@ async function tweetTopRepo(repo: Repo) {
   } else {
     repoTag = `@${org.twitter_username} /${repo.name}`
   }
+  return repoTag
+}
 
+/**
+ * Posts a tweet about the most starred repo.
+ *
+ * @param repo the top repo.
+ */
+async function tweetTopRepo(repo: Repo) {
+  const tag = await repoTag(repo)
   functions.logger.info(
-    `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars.`
+    `Tweeting about top repo ${tag} at ${repo.stargazers_count} stars.`
   )
 
   const formattedStars = numbro(repo.stargazers_count).format({
@@ -260,9 +296,49 @@ async function tweetTopRepo(repo: Repo) {
   })
   await twitter.post('statuses/update', {
     status: `
-The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
+The currently most starred software repo on #GitHub is ${tag} with ${formattedStars} 🌟
 
 #${repo.name}
 ${repo.html_url}`,
   })
+}
+
+/**
+ * Checks the given repo for having passed any milestones by comparing the
+ * current repo data to the latest stored data.
+ *
+ * @param repo the current repo data from GitHub.
+ * @param latest the latest data we have stored about the repo.
+ */
+async function trackRepoMilestones(repo: Repo, latest: DocumentSnapshot) {
+  const previousStars: Number = latest.get('stargazers_count')
+  const currentStars = repo.stargazers_count
+
+  if (currentStars < previousStars) return
+
+  for (const milestone of milestones) {
+    if (currentStars < milestone) break
+    if (previousStars >= milestone) continue
+
+    const tag = await repoTag(repo)
+    functions.logger.info(
+      `Tweeting about ${tag} reaching the ${milestone} milestone.`
+    )
+
+    const formattedMilestone = numbro(milestone).format({
+      average: true,
+      mantissa: 3,
+      optionalMantissa: true,
+    })
+    // Tweet about milestone.
+    await twitter.post('statuses/update', {
+      status: `
+${tag} just reached the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
+
+Way to go and congrats on reaching this epic milestone 💪 #${repo.name}
+${repo.html_url}
+`,
+    })
+    return
+  }
 }
