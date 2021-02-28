@@ -192,7 +192,7 @@ exports.update = functions.pubsub
     await Promise.all(batchingPromises)
     await batch.commit()
 
-    tweetTopRepo(repos[0])
+    await tweetTopRepo(repos[0])
 
     functions.logger.debug(
       `Started update at ${start} and ended at ${new Date()}.`
@@ -240,7 +240,7 @@ async function getDaysAgoDoc(
 async function tweetTopRepo(repo: Repo) {
   const org = (await octokit.orgs.get({ org: repo.owner.login })).data
   let repoTag
-  if (org.twitter_username == undefined) {
+  if (org.twitter_username === null) {
     repoTag = `*${repo.full_name}*`
   } else {
     repoTag = `@${org.twitter_username} /${repo.name}`
