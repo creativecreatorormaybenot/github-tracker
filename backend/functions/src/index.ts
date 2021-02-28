@@ -296,7 +296,7 @@ async function tweetTopRepo(repo: Repo) {
     optionalMantissa: true,
   })
   let secondHashtag = ''
-  if (!repoTag.startsWith('@') && repo.name != repo.owner.login) {
+  if (!repoTag.startsWith('@') && repo.name !== repo.owner.login) {
     secondHashtag = ` #${repo.owner.login}`
   }
   await twitter.post('statuses/update', {
@@ -336,7 +336,7 @@ async function trackRepoMilestones(repo: Repo, latest: DocumentSnapshot) {
       optionalMantissa: true,
     })
     let secondHashtag = ''
-    if (!repoTag.startsWith('@') && repo.name != repo.owner.login) {
+    if (!repoTag.startsWith('@') && repo.name !== repo.owner.login) {
       secondHashtag = ` #${repo.owner.login}`
     }
     // Tweet about milestone.
