@@ -131,6 +131,24 @@ exports.update = functions.pubsub
     // precise time we made the search request.
     const now = admin.firestore.Timestamp.now()
 
+    // We need to make sure that we do not surpass the 500 operations write
+    // limit for batch writes. This is why we create a function for dynamically
+    // retrieving write batches.
+    // At this time, we have at least 100 writes for storing the repo data and 100
+    // updates for updating the stats data. However, we cannot know how many deletes
+    // we have (as the old data might be faulty). Furthermore, this approach ensures
+    // that we can add batch operations later on :)
+    const batches: admin.firestore.WriteBatch[] = []
+    let opIndex = 0
+    function batch(): admin.firestore.WriteBatch {
+      if (opIndex % 500 === 0) {
+        batches.push(firestore.batch())
+      }
+      opIndex++
+
+      return batches[batches.length - 1]
+    }
+
     // 32986 is the precise amount of stars that exactly only 200 repos
     // had achieved at the time I wrote this code. There were 201 repos
     // that had achieved 32986 stars.
@@ -163,14 +181,6 @@ exports.update = functions.pubsub
       )
     }
 
-    // We can savely use one batch for all our operations because
-    // batches allow up to 500 operations and we have a max
-    // of 300 operations in our batch.
-    // The sum consists of 100 normal data writes (creating data docs),
-    // 100 stats writes (creating or updating docs), and up to 100
-    // stats deletions (deleting docs that are not top 100 anymore).
-    const batch = firestore.batch()
-
     const batchingPromises: Array<Promise<any>> = []
     for (const repo of top100) {
       const dataCollection = firestore
@@ -196,7 +206,7 @@ exports.update = functions.pubsub
           avatar_url: repo.owner.avatar_url,
         },
       }
-      batch.create(dataCollection.doc(), data)
+      batch().create(dataCollection.doc(), data)
 
       // Create a metadata subset of the repo data that we can include
       // in the stats doc.
@@ -244,7 +254,7 @@ exports.update = functions.pubsub
                 },
               }),
         }
-        batch.set(
+        batch().set(
           typedCollection<StatsData>('stats').doc(`${repo.id}`),
           statsData
         )
@@ -256,10 +266,26 @@ exports.update = functions.pubsub
       })
       batchingPromises.push(statsPromise)
     }
-    // This way we can run all the 300 document gets for the historical
+
+    // Remove stats docs for repos that are not currently in the top 100.
+    const currentStatsReposPromise = typedCollection<StatsData>('stats')
+      .listDocuments()
+      .then((currentStatsRepos) => {
+        const top100Ids = top100.map((repo) => repo.id.toString())
+        for (const repo of currentStatsRepos) {
+          if (!top100Ids.includes(repo.id)) {
+            batch().delete(repo)
+          }
+        }
+      })
+    batchingPromises.push(currentStatsReposPromise)
+
+    // This way we can run all the 400 document gets for the historical
     // stats in parallel and not have the function timeout.
     await Promise.all(batchingPromises)
-    await batch.commit()
+    // Additionally, we can commit the potentially multiple batches in
+    // parallel as well.
+    await Promise.all(batches.map((b) => b.commit()))
 
     if (false) {
       // We do not want to spam about the top repo.
