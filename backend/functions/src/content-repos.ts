@@ -1,9 +1,21 @@
 /**
- * This list of content repos is a direct copy of https://github.com/timsneath/github-tracker/blob/f490b633b211ef6b400371d6953de7171993aedf/lib/contentRepos.dart#L10.
+ * This list of content repos is a direct copy of https://github.com/timsneath/github-tracker/blob/7c06c677962f55d7a860af1ac8c731720895f046/lib/contentRepos.dart#L10.
  *
  * I also contributed to that list as part of making this project.
  *
  * The github-tracker repo (home of the list) created by timsneath is also a major inspiration for this project.
+ *
+ * For reference, I will quote the definition of the content repos list:
+ *
+ * > Hardcoded list of content-only repos. This is a manually curated list; the
+ * > criteria is repos that either contain no code (e.g. study plans, lists)
+ * > or where the code is incidental to the repo (e.g. a tutorial). The
+ * > expectation is that repos not in this list primarily exist for the purpose
+ * > of disseminating and collaborating on source code.
+ *
+ * > Since this is a manually-curated list, there is *always* the possibility of
+ * > error. Please feel free to file an issue or a pull request if you see
+ * > something in the wrong category.
  */
 export const contentRepos: Array<string> = [
   '996icu/996.ICU',
@@ -69,4 +81,11 @@ export const contentRepos: Array<string> = [
   '30-seconds/30-seconds-of-csharp',
   '30-seconds/30-seconds-of-php',
   '30-seconds/30-seconds-of-dart',
+  'sindresorhus/awesome-nodejs',
+  'tuvtran/project-based-learning',
+  'ripienaar/free-for-dev',
+  'ryanmcdermott/clean-code-javascript',
+  'doocs/advanced-java',
+  'iluwatar/java-design-patterns',
+  'azl397985856/leetcode',
 ]
