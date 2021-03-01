@@ -77,7 +77,7 @@ async function accessSecret(name: string): Promise<string> {
 }
 
 /**
- * Updates the tracker (currently every 30 minutes).
+ * Updates the tracker (currently every 15 minutes).
  *
  * This involves three steps:
  * 1. Fetch the top 100 repos and save their data.
@@ -85,7 +85,7 @@ async function accessSecret(name: string): Promise<string> {
  * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
 exports.update = functions.pubsub
-  .schedule('*/30 * * * *')
+  .schedule('*/15 * * * *')
   .onRun(async (context) => {
     // The start date is only use for logging purposes.
     const start = new Date()
