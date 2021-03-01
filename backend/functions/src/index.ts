@@ -27,18 +27,38 @@ type Repo = GetResponseDataTypeFromEndpointMethod<
 
 interface RepoData {
   timestamp: admin.firestore.Timestamp
-  position: Number
-  full_name: String
-  description: String
-  language: String | null
-  html_url: String
-  stargazers_count: Number
+  position: number
+  full_name: string
+  description: string
+  language: string | null
+  html_url: string
+  stargazers_count: number
   owner: {
-    id: Number
-    login: String
-    html_url: String
-    avatar_url: String
+    id: number
+    login: string
+    html_url: string
+    avatar_url: string
   }
+}
+
+function snapshotConverter<T>(): admin.firestore.FirestoreDataConverter<T> {
+  return {
+    toFirestore(data: T): admin.firestore.DocumentData {
+      return data
+    },
+    fromFirestore(snapshot: admin.firestore.QueryDocumentSnapshot): T {
+      return snapshot.data() as T
+    },
+  }
+}
+
+function typedCollection<T>(
+  path: string
+): admin.firestore.CollectionReference<T> {
+  return admin
+    .firestore()
+    .collection(path)
+    .withConverter(snapshotConverter<T>())
 }
 
 type RepoMetadata = Pick<
@@ -48,8 +68,8 @@ type RepoMetadata = Pick<
   Partial<RepoData>
 
 interface StatsDayData {
-  position: Number
-  stars: Number
+  position: number
+  stars: number
 }
 
 interface StatsData {
@@ -159,6 +179,7 @@ exports.update = functions.pubsub
         // can handle repo name changes and owner changes.
         .doc(repo.id.toString())
         .collection('data')
+        .withConverter(snapshotConverter<RepoData>())
 
       const data: RepoData = {
         timestamp: now,
@@ -184,10 +205,10 @@ exports.update = functions.pubsub
       delete metadata.stargazers_count
 
       const statsPromise = Promise.all([
-        getDaysAgoDoc<RepoData>(dataCollection, now, 1),
-        getDaysAgoDoc<RepoData>(dataCollection, now, 7),
-        getDaysAgoDoc<RepoData>(dataCollection, now, 28),
-        getLatestDoc<RepoData>(dataCollection),
+        getDaysAgoDoc(dataCollection, now, 1),
+        getDaysAgoDoc(dataCollection, now, 7),
+        getDaysAgoDoc(dataCollection, now, 28),
+        getLatestDoc(dataCollection),
       ]).then(async (snapshots) => {
         const [one, seven, twentyEight, latest] = snapshots
 
@@ -223,7 +244,10 @@ exports.update = functions.pubsub
                 },
               }),
         }
-        batch.set(firestore.collection('stats').doc(`${repo.id}`), statsData)
+        batch.set(
+          typedCollection<StatsData>('stats').doc(`${repo.id}`),
+          statsData
+        )
 
         if (latest !== undefined) {
           // Await tracking milestones for the repo.
@@ -257,7 +281,7 @@ exports.update = functions.pubsub
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getDaysAgoDoc<T>(
-  collection: admin.firestore.CollectionReference,
+  collection: admin.firestore.CollectionReference<T>,
   now: admin.firestore.Timestamp,
   days: number
 ): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
@@ -277,10 +301,9 @@ async function getDaysAgoDoc<T>(
       admin.firestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
     )
     .limit(1)
+    .withConverter(snapshotConverter<T>())
     .get()
-  return result.docs.length === 0
-    ? undefined
-    : (result.docs[0] as admin.firestore.DocumentSnapshot<T>)
+  return result.docs.length === 0 ? undefined : result.docs[0]
 }
 
 /**
@@ -291,12 +314,14 @@ async function getDaysAgoDoc<T>(
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getLatestDoc<T>(
-  collection: admin.firestore.CollectionReference
+  collection: admin.firestore.CollectionReference<T>
 ): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
-  const result = await collection.orderBy('timestamp', 'desc').limit(1).get()
-  return result.docs.length === 0
-    ? undefined
-    : (result.docs[0] as admin.firestore.DocumentSnapshot<T>)
+  const result = await collection
+    .orderBy('timestamp', 'desc')
+    .limit(1)
+    .withConverter(snapshotConverter<T>())
+    .get()
+  return result.docs.length === 0 ? undefined : result.docs[0]
 }
 
 /**
@@ -307,7 +332,7 @@ async function getLatestDoc<T>(
  *
  * @returns a string repo tag.
  */
-async function getRepoTag(repo: Repo): Promise<String> {
+async function getRepoTag(repo: Repo): Promise<string> {
   const org = (await octokit.orgs.get({ org: repo.owner.login })).data
   let repoTag
   if (org.twitter_username === null) {
@@ -325,7 +350,7 @@ async function getRepoTag(repo: Repo): Promise<String> {
  *
  * @returns a string of one or more space-separated hashtags.
  */
-function getHashtags(repo: Repo): String {
+function getHashtags(repo: Repo): string {
   const hashtags = [`#${repo.owner.login}`]
   if (repo.owner.login !== repo.name) {
     hashtags.push(`#${repo.name}`)
@@ -373,7 +398,7 @@ ${repo.html_url}`,
  * @param latest the latest data we have stored about the repo.
  */
 async function trackRepoMilestones(repo: Repo, latest: RepoData) {
-  const previousStars: Number = latest.stargazers_count
+  const previousStars: number = latest.stargazers_count
   const currentStars = repo.stargazers_count
 
   if (currentStars < previousStars) return
