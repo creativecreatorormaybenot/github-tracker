@@ -256,6 +256,20 @@ exports.update = functions.pubsub
       })
       batchingPromises.push(statsPromise)
     }
+
+    // Remove stats docs for repos that are not currently in the top 100.
+    const currentStatsReposPromise = typedCollection<StatsData>('stats')
+      .listDocuments()
+      .then((currentStatsRepos) => {
+        const top100Ids = top100.map((repo) => repo.id.toString())
+        for (const repo of currentStatsRepos) {
+          if (!top100Ids.includes(repo.id)) {
+            batch.delete(repo)
+          }
+        }
+      })
+    batchingPromises.push(currentStatsReposPromise)
+
     // This way we can run all the 300 document gets for the historical
     // stats in parallel and not have the function timeout.
     await Promise.all(batchingPromises)
