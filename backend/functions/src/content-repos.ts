@@ -69,4 +69,11 @@ export const contentRepos: Array<string> = [
   '30-seconds/30-seconds-of-csharp',
   '30-seconds/30-seconds-of-php',
   '30-seconds/30-seconds-of-dart',
+  'sindresorhus/awesome-nodejs',
+  'tuvtran/project-based-learning',
+  'ripienaar/free-for-dev',
+  'ryanmcdermott/clean-code-javascript',
+  'doocs/advanced-java',
+  'iluwatar/java-design-patterns',
+  
 ]
