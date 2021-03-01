@@ -41,6 +41,25 @@ interface RepoData {
   }
 }
 
+type RepoMetadata = Pick<
+  RepoData,
+  'timestamp' | 'full_name' | 'description' | 'html_url' | 'owner' | 'language'
+> &
+  Partial<RepoData>
+
+interface StatsDayData {
+  position: number
+  stars: number
+}
+
+interface StatsData {
+  metadata: RepoMetadata
+  latest: StatsDayData
+  oneDay?: StatsDayData
+  sevenDay?: StatsDayData
+  twentyEightDay?: StatsDayData
+}
+
 function snapshotConverter<T>(): admin.firestore.FirestoreDataConverter<T> {
   return {
     toFirestore(data: T): admin.firestore.DocumentData {
@@ -59,25 +78,6 @@ function typedCollection<T>(
     .firestore()
     .collection(path)
     .withConverter(snapshotConverter<T>())
-}
-
-type RepoMetadata = Pick<
-  RepoData,
-  'timestamp' | 'full_name' | 'description' | 'html_url' | 'owner' | 'language'
-> &
-  Partial<RepoData>
-
-interface StatsDayData {
-  position: number
-  stars: number
-}
-
-interface StatsData {
-  metadata: RepoMetadata
-  latest: StatsDayData
-  oneDay?: StatsDayData
-  sevenDay?: StatsDayData
-  twentyEightDay?: StatsDayData
 }
 
 /**
