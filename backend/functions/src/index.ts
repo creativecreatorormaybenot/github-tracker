@@ -141,7 +141,7 @@ exports.update = functions.pubsub
     const batches: admin.firestore.WriteBatch[] = []
     let opIndex = 0
     function batch(): admin.firestore.WriteBatch {
-      if (opIndex % 500 == 0) {
+      if (opIndex % 500 === 0) {
         batches.push(firestore.batch())
       }
       opIndex++
@@ -285,7 +285,7 @@ exports.update = functions.pubsub
     await Promise.all(batchingPromises)
     // Additionally, we can commit the potentially multiple batches in
     // parallel as well.
-    await Promise.all(batches.map((batch) => batch.commit()))
+    await Promise.all(batches.map((b) => b.commit()))
 
     if (false) {
       // We do not want to spam about the top repo.
