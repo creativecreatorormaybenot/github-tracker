@@ -503,6 +503,7 @@ The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #Gi
 
 Way to go${await getTwitterTag({
         repo,
+        padStringMode: PadStringMode.Start,
       })} and congrats on reaching this epic milestone 💪 ${getHashtags(repo)}
 ${repo.html_url}
 `,
