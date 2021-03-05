@@ -29,6 +29,7 @@ interface RepoData {
   timestamp: admin.firestore.Timestamp
   position: number
   full_name: string
+  name: string
   description: string
   language: string | null
   html_url: string
@@ -82,9 +83,7 @@ function typedCollection<T>(
 
 /**
  * Accesses a secret manager secret.
- *
  * @param name the name of the secret in Google Cloud Secret Manager.
- *
  * @returns the payload of the secret.
  */
 async function accessSecret(name: string): Promise<string> {
@@ -195,6 +194,7 @@ exports.update = functions.pubsub
         timestamp: now,
         position: top100.indexOf(repo) + 1,
         full_name: repo.full_name,
+        name: repo.name,
         description: repo.description,
         language: repo.language,
         html_url: repo.html_url,
@@ -299,11 +299,9 @@ exports.update = functions.pubsub
 
 /**
  * Get a doc that is dated a number of days ago compared to now.
- *
  * @param collection the data collection, where the queried docs have a timestamp field.
  * @param now the timestamp to compare against.
  * @param days the number of days ago the doc should be dated compared to now.
- *
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getDaysAgoDoc<T>(
@@ -334,9 +332,7 @@ async function getDaysAgoDoc<T>(
 
 /**
  * Get the latest doc in the given collection.
- *
  * @param collection the data collection, where the queried docs have a timestamp field.
- *
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getLatestDoc<T>(
@@ -351,29 +347,85 @@ async function getLatestDoc<T>(
 }
 
 /**
- * Generates a repo tag for the given repo that will include the organization's Twitter
- * tag if available and the repo's full name otherwise.
- *
+ * Generates a repo tag for the given repo based on the full name of the repo.
  * @param repo the repo data.
- *
  * @returns a string repo tag.
  */
-async function getRepoTag(repo: Repo): Promise<string> {
-  const org = (await octokit.orgs.get({ org: repo.owner.login })).data
-  let repoTag
-  if (org.twitter_username === null) {
-    repoTag = `*${repo.full_name}*`
-  } else {
-    repoTag = `@${org.twitter_username} /${repo.name}`
+function getRepoTag(repo: Repo): string {
+  return `*${repo.full_name}*`
+}
+
+const enum PadStringMode {
+  Start,
+  End,
+  Both,
+  None,
+}
+
+/**
+ * Pads the input string using the given pad mode.
+ * @param input the input string.
+ * @param mode the pad string mode.
+ * @returns a padded version of the input string.
+ */
+function padString(input: string, mode: PadStringMode): string {
+  switch (mode) {
+    case PadStringMode.Start:
+      return ` ${input}`
+    case PadStringMode.End:
+      return `${input} `
+    case PadStringMode.Both:
+      return ` ${input} `
+    case PadStringMode.None:
+      return input
   }
-  return repoTag
+}
+
+interface TwitterTagParameters {
+  repo: Repo
+  padStringMode?: PadStringMode
+}
+
+/**
+ * Generates a Twitter tag for the owner of the given repo.
+ *
+ * Note that the repo organization or repo user might not have a connected Twitter account.
+ * In that case, an empty string will be returned. Otherwise, the string will be padded
+ * according to the PadStringMode.
+ * @param repo the repo data.
+ * @param padStringMode describes what padding (1 space on the sides) to apply when a tag is found.
+ * @returns a string Twitter tag or an empty string.
+ */
+async function getTwitterTag({
+  repo,
+  padStringMode = PadStringMode.None,
+}: TwitterTagParameters): Promise<string> {
+  let twitter_username: string | null | undefined
+  if (repo.owner.type === 'User') {
+    const user = (
+      await octokit.users.getByUsername({ username: repo.owner.login })
+    ).data
+    twitter_username = user.twitter_username
+  } else {
+    if (repo.owner.type !== 'Organization') {
+      functions.logger.warn(
+        `Unknown owner type "${repo.owner.type}" for the owner of the ${repo.full_name} repo.`
+      )
+    }
+
+    const org = (await octokit.orgs.get({ org: repo.owner.login })).data
+    twitter_username = org.twitter_username
+  }
+
+  if (twitter_username === null || twitter_username === undefined) {
+    return ''
+  }
+  return padString(`@${twitter_username}`, padStringMode)
 }
 
 /**
  * Generates a strings of hashtags based on the given repo.
- *
  * @param repo the repo data.
- *
  * @returns a string of one or more space-separated hashtags.
  */
 function getHashtags(repo: Repo): string {
@@ -393,11 +445,10 @@ function getHashtags(repo: Repo): string {
 
 /**
  * Posts a tweet about the most starred repo.
- *
  * @param repo the top repo.
  */
 async function tweetTopRepo(repo: Repo) {
-  const repoTag = await getRepoTag(repo)
+  const repoTag = getRepoTag(repo)
   functions.logger.info(
     `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars.`
   )
@@ -411,7 +462,10 @@ async function tweetTopRepo(repo: Repo) {
     status: `
 The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
 
-${getHashtags(repo)}
+${await getTwitterTag({
+  repo,
+  padStringMode: PadStringMode.End,
+})}${getHashtags(repo)}
 ${repo.html_url}`,
   })
 }
@@ -419,7 +473,6 @@ ${repo.html_url}`,
 /**
  * Checks the given repo for having passed any milestones by comparing the
  * current repo data to the latest stored data.
- *
  * @param repo the current repo data from GitHub.
  * @param latest the latest data we have stored about the repo.
  */
@@ -433,7 +486,7 @@ async function trackRepoMilestones(repo: Repo, latest: RepoData) {
     if (currentStars < milestone) break
     if (previousStars >= milestone) continue
 
-    const repoTag = await getRepoTag(repo)
+    const repoTag = getRepoTag(repo)
     functions.logger.info(
       `Tweeting about ${repoTag} reaching the ${milestone} milestone.`
     )
@@ -448,7 +501,9 @@ async function trackRepoMilestones(repo: Repo, latest: RepoData) {
       status: `
 The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
 
-Way to go and congrats on reaching this epic milestone 💪 ${getHashtags(repo)}
+Way to go${await getTwitterTag({
+        repo,
+      })} and congrats on reaching this epic milestone 💪 ${getHashtags(repo)}
 ${repo.html_url}
 `,
     })
