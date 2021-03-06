@@ -7,10 +7,10 @@
     "predeploy": [
       "npm --prefix \"$RESOURCE_DIR\" run lint",
       "npm --prefix \"$RESOURCE_DIR\" run build"
-    ]
+    ],
+    "source": "functions"
   },
   "hosting": {
-    "site": "github-repo-tracker",
     "public": "public",
     "ignore": [
       "firebase.json",
