@@ -220,7 +220,7 @@ exports.update = functions.pubsub
         getDaysAgoDoc(dataCollection, now, 28),
         getLatestDoc(dataCollection),
       ]).then(async (snapshots) => {
-        const [one, seven, twentyEight, latest] = snapshots
+        const [one, seven, twentyEight, previous] = snapshots
 
         // Store stats data.
         const statsData: StatsData = {
@@ -259,9 +259,9 @@ exports.update = functions.pubsub
           statsData
         )
 
-        if (latest !== undefined) {
+        if (previous !== undefined) {
           // Await tracking milestones for the repo.
-          await trackRepoMilestones(repo, latest.data()!)
+          await trackRepoMilestones(repo, previous.data()!)
         }
       })
       batchingPromises.push(statsPromise)
@@ -426,9 +426,9 @@ async function getTwitterTag({
 /**
  * Generates a strings of hashtags based on the given repo.
  * @param repo the repo data.
- * @returns a string of one or more space-separated hashtags.
+ * @returns a string array of hashtags.
  */
-function getHashtags(repo: Repo): string {
+function getHashtags(repo: Repo): string[] {
   const hashtags = [`#${repo.owner.login}`]
   if (repo.owner.login !== repo.name) {
     hashtags.push(`#${repo.name}`)
@@ -440,7 +440,7 @@ function getHashtags(repo: Repo): string {
   ) {
     hashtags.push(`#${repo.language}`)
   }
-  return hashtags.join(' ')
+  return hashtags
 }
 
 /**
@@ -465,19 +465,19 @@ The currently most starred software repo on #GitHub is ${repoTag} with ${formatt
 ${await getTwitterTag({
   repo,
   padStringMode: PadStringMode.End,
-})}${getHashtags(repo)}
+})}${getHashtags(repo).join(' ')}
 ${repo.html_url}`,
   })
 }
 
 /**
  * Checks the given repo for having passed any milestones by comparing the
- * current repo data to the latest stored data.
- * @param repo the current repo data from GitHub.
- * @param latest the latest data we have stored about the repo.
+ * current repo data to the previous stored data.
+ * @param repo the current external repo data from GitHub.
+ * @param previous the previous internal data we have stored about the repo.
  */
-async function trackRepoMilestones(repo: Repo, latest: RepoData) {
-  const previousStars: number = latest.stargazers_count
+async function trackRepoMilestones(repo: Repo, previous: RepoData) {
+  const previousStars: number = previous.stargazers_count
   const currentStars = repo.stargazers_count
 
   if (currentStars < previousStars) return
@@ -504,10 +504,76 @@ The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #Gi
 Way to go${await getTwitterTag({
         repo,
         padStringMode: PadStringMode.Start,
-      })} and congrats on reaching this epic milestone 💪 ${getHashtags(repo)}
+      })} and congrats on reaching this epic milestone 💪 ${getHashtags(
+        repo
+      ).join(' ')}
 ${repo.html_url}
 `,
     })
     return
   }
+}
+
+/**
+ * Tracks the position of the given repo by comparing the current position to its previous position.
+ * @param current the current internal data of the repo to track.
+ * @param previous the previous internal data of the repo to track.
+ * @param top100 the external data for the top 100 repos.
+ */
+async function trackRepoPosition({
+  current,
+  previous,
+  top100,
+}: {
+  current: RepoData
+  previous: RepoData
+  top100: Repo[]
+}) {
+  // There is nothing to inform about when the position has not changed.
+  if (current.position == previous.position) return
+  // Also, for now I feel like we should only share good news. We could of course also approach this from
+  // the opposite perspective, i.e. when the position of one repo increases, it has to decrease for a
+  // different one. That said, the approach in this function is to report about repos rising and also
+  // capturing it this way.
+  if (current.position < previous.position) return
+
+  const repo = top100[current.position - 1]
+  if (repo.full_name !== current.full_name) {
+    functions.logger.warn(
+      `Position of ${current.full_name} in the top 100 array does not match actual position.`
+    )
+    return
+  }
+
+  // For now, we assume the simplest case, which is one repo taking the position of another, where
+  // the position gain is at max 1.
+  // The previous leader is now at the position that the repo to track was at before.
+  const previousLeader = top100[previous.position - 1]
+
+  // Tweet about one repo overtaking the other.
+  const formattedStars = numbro(current.stargazers_count).format({
+    average: true,
+    mantissa: 1,
+    optionalMantissa: true,
+  })
+  const combinedHashtags = Array.from(
+    new Set(getHashtags(repo).concat(getHashtags(previousLeader)))
+  ).join(' ')
+  await twitter.post(`statuses/update`, {
+    status: `
+${getRepoTag(repo)} just surpassed ${getRepoTag(
+      previousLeader
+    )} in stars on #GitHub 🚀
+
+It is now the #${
+      current.position
+    } most starred software repo with ${formattedStars} 🌟
+
+${await getTwitterTag({
+  repo,
+  padStringMode: PadStringMode.End,
+})}${combinedHashtags}
+${current.html_url}
+`,
+  })
 }
