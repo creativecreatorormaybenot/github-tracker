@@ -260,8 +260,15 @@ exports.update = functions.pubsub
         )
 
         if (previous !== undefined) {
-          // Await tracking milestones for the repo.
-          await trackRepoMilestones(repo, previous.data()!)
+          // Await all tracking operations in parallel for the repo.
+          await Promise.all([
+            trackRepoMilestones(repo, previous.data()!),
+            trackRepoPosition({
+              current: data,
+              previous: previous.data()!,
+              top100: top100,
+            }),
+          ])
         }
       })
       batchingPromises.push(statsPromise)
@@ -477,7 +484,7 @@ ${repo.html_url}`,
  * @param previous the previous internal data we have stored about the repo.
  */
 async function trackRepoMilestones(repo: Repo, previous: RepoData) {
-  const previousStars: number = previous.stargazers_count
+  const previousStars = previous.stargazers_count
   const currentStars = repo.stargazers_count
 
   if (currentStars < previousStars) return
