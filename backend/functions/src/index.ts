@@ -294,7 +294,7 @@ exports.update = functions.pubsub
     // parallel as well.
     await Promise.all(batches.map((b) => b.commit()))
 
-    if (true) {
+    if (false) {
       // We do not want to spam about the top repo.
       await tweetTopRepo(top100[0])
     }
@@ -537,7 +537,7 @@ async function trackRepoPosition({
   top100: Repo[]
 }) {
   // There is nothing to inform about when the position has not changed.
-  if (current.position == previous.position) return
+  if (current.position === previous.position) return
   // Also, for now I feel like we should only share good news. We could of course also approach this from
   // the opposite perspective, i.e. when the position of one repo increases, it has to decrease for a
   // different one. That said, the approach in this function is to report about repos rising and also

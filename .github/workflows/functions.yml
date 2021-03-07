@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - '.github/workflows/functions.yml'
       - 'backend/functions/**'
       - 'backend/.firebaserc'
       - 'backend/firebase.json'
@@ -16,7 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.3.4
-      - run: |
+      - name: Install dependencies
+        run: |
           cd backend/functions
           npm install
       - uses: w9jds/firebase-action@v2.0.0
