@@ -548,10 +548,10 @@ async function trackRepoPosition({
   // There is nothing to inform about when the position has not changed.
   if (current.position === previous.position) return
   // Also, for now I feel like we should only share good news. We could of course also approach this from
-  // the opposite perspective, i.e. when the position of one repo increases, it has to decrease for a
+  // the opposite perspective, i.e. when the position of one repo improves, it has to disimprove for a
   // different one. That said, the approach in this function is to report about repos rising and also
   // capturing it this way.
-  if (current.position < previous.position) return
+  if (current.position > previous.position) return
 
   const repo = top100[current.position - 1]
   if (repo.id !== current.id) {
