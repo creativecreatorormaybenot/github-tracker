@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - '.github/workflows/preview.yml'
       - 'backend/.firebaserc'
       - 'backend/firebase.json'
       # todo: exclude public (remove it from the repo and generate it during build).
