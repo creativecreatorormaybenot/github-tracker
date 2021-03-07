@@ -28,8 +28,9 @@ type Repo = GetResponseDataTypeFromEndpointMethod<
 interface RepoData {
   timestamp: admin.firestore.Timestamp
   position: number
-  full_name: string
+  id: number
   name: string
+  full_name: string
   description: string
   language: string | null
   html_url: string
@@ -44,7 +45,14 @@ interface RepoData {
 
 type RepoMetadata = Pick<
   RepoData,
-  'timestamp' | 'full_name' | 'description' | 'html_url' | 'owner' | 'language'
+  | 'timestamp'
+  | 'id'
+  | 'name'
+  | 'full_name'
+  | 'description'
+  | 'language'
+  | 'html_url'
+  | 'owner'
 > &
   Partial<RepoData>
 
@@ -193,8 +201,9 @@ exports.update = functions.pubsub
       const data: RepoData = {
         timestamp: now,
         position: top100.indexOf(repo) + 1,
-        full_name: repo.full_name,
+        id: repo.id,
         name: repo.name,
+        full_name: repo.full_name,
         description: repo.description,
         language: repo.language,
         html_url: repo.html_url,
@@ -545,7 +554,7 @@ async function trackRepoPosition({
   if (current.position < previous.position) return
 
   const repo = top100[current.position - 1]
-  if (repo.full_name !== current.full_name) {
+  if (repo.id !== current.id) {
     functions.logger.warn(
       `Position of ${current.full_name} in the top 100 array does not match actual position.`
     )
