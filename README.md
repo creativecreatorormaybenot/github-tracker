@@ -7,12 +7,12 @@ Tracking the top 100 GitHub software repos.
 Any contributions to this project are more than welcome! If you want to help, feel free to give it a shot :)
 
 The easiest way for you to make contributions is opening issues or preferrably if similar issues already
-exist, upvote them and/or join the discussion. You can find existing issues and open new issue in the
+exist, upvote them and/or join the discussion. You can find existing issues and open new issues in the
 [issues tab of this repo][github tracker issues].
 
 If you feel like there is any information missing for you to make a contribution in the form of a pull
-request, please feel free to create an issue as well. I guess I will have to figure out what contributing
-information (in the form of documentation) is required to make PRs on such a project.
+request, please feel free to create an issue for that as well. I guess I will have to figure out what
+contributing information (as in documentation) is required to make PRs on such a project.
 
 ## Costs
 
