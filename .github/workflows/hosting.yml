@@ -1,15 +1,21 @@
-name: Hosting
+name: hosting
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/.firebaserc'
+      - 'backend/firebase.json'
+      # todo: exclude public (remove it from the repo and generate it during build).
+      # todo: include frontend paths here instead.
+      - 'backend/public/**'
 
 jobs:
   build_and_deploy:
     timeout-minutes: 5
     runs-on: ubuntu-latest
-    name: github-tracker hosting deploy
+    name: deployment of github-tracker
     steps:
       - uses: actions/checkout@v2.3.4
       - run: |
