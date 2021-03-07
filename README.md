@@ -1,4 +1,4 @@
-# github-tracker [![GitHub Tracker on Twitter][github tracker twitter shield]][github tracker twitter] [![creativecreatorormaybenot on Twitter][creativemaybeno twitter shield]][creativemaybeno twitter]
+# GitHub Tracker [![GitHub Tracker web app][github tracker web app shield]][github tracker web app] [![GitHub Tracker on Twitter][github tracker twitter shield]][github tracker twitter] [![creativecreatorormaybenot on Twitter][creativemaybeno twitter shield]][creativemaybeno twitter]
 
 Tracking the top 100 GitHub software repos.
 
@@ -25,6 +25,8 @@ amount of money for this project - although I am willing to burn quite a bit bec
 
 I am not sure what to do about this yet. [Let me know][dm] if you have any ideas :)
 
+[github tracker web app]: https://ght.creativemaybeno.dev
+[github tracker web app shield]: https://img.shields.io/badge/web-app-yellow
 [github tracker twitter]: https://twitter.com/GitHubTracker
 [github tracker twitter shield]: https://img.shields.io/twitter/follow/GitHubTracker?label=GitHub%20Tracker&style=social
 [creativemaybeno twitter]: https://twitter.com/creativemaybeno
