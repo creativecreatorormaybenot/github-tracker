@@ -1,15 +1,21 @@
-name: Preview
+name: preview
 
 on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'backend/.firebaserc'
+      - 'backend/firebase.json'
+      # todo: exclude public (remove it from the repo and generate it during build).
+      # todo: include frontend paths here instead.
+      - 'backend/public/**'
 
 jobs:
   build_and_preview:
     timeout-minutes: 5
     runs-on: ubuntu-latest
-    name: github-tracker hosting preview
+    name: hosting of github-tracker
     steps:
       - uses: actions/checkout@v2.3.4
       - run: |

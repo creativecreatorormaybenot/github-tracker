@@ -1,0 +1,27 @@
+name: functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/functions/**'
+      - 'backend/.firebaserc'
+      - 'backend/firebase.json'
+
+jobs:
+  deploy:
+    timeout-minutes: 5
+    name: deployment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - run: |
+          cd backend/functions
+          npm install
+      - uses: w9jds/firebase-action@v2.0.0
+        with:
+          args: deploy --only functions
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          PROJECT_PATH: backend
