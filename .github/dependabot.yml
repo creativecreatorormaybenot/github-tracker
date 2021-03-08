@@ -9,3 +9,8 @@ updates:
     directory: '/backend/functions'
     schedule:
       interval: 'daily'
+    assignees:
+      - 'creativecreatorormaybenot'
+    reviewers:
+      - 'creativecreatorormaybenot'
+    open-pull-requests-limit: 1
