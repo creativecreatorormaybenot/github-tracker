@@ -114,9 +114,6 @@ async function accessSecret(name: string): Promise<string> {
 exports.update = functions.pubsub
   .schedule('*/15 * * * *')
   .onRun(async (context) => {
-    // The start date is only use for logging purposes.
-    const start = new Date()
-
     // Load the Twitter client asynchronously on cold start.
     // The reason we have to do this is in order to ensure that
     // the client is loaded before execution as it depends on secrets
@@ -180,16 +177,35 @@ exports.update = functions.pubsub
     const softwareRepos = repos.filter(
         (repo) => !contentRepos.includes(repo.full_name)
       ),
-      top100 = softwareRepos.slice(0, 100)
+      top100External = softwareRepos.slice(0, 100)
 
-    if (top100.length !== 100) {
+    if (top100External.length !== 100) {
       functions.logger.warn(
-        `Only ${top100.length}/100 repos could be retrieved.`
+        `Only ${top100External.length}/100 repos could be retrieved.`
       )
     }
+    // We refer to the top100 retrieved from GitHub above as "external" as
+    // it uses a different data structure (interface) than the data that we
+    // end up saving to our database.
+    // Therefore, the "external" format is of type Repo and the "internal" format
+    // is of type "RepoData".
+    // Any data with a days ago suffix (e.g. 1day, 7day, and 28day) is implicitly
+    // considered "internal". This is because the only external data we can get is
+    // the *latest* data, i.e. the data as of right now. Any older data has to come
+    // from our database and is consequently internal.
+    const top100Internal: Array<RepoData> = [],
+      // Note that the order of the internal data from previous days is different from the
+      // external and internal current data in two ways:
+      // 1. It might contain undefined values as past data might not exist.
+      // 2. The order of the array elements does *not* represent the order of the repo
+      //    positions in that data. Instead, the order corresponds to the position order
+      //    (1 to 100) in the current internal or external data.
+      top100OneDay: Array<RepoData | undefined> = [],
+      top100SevenDay: Array<RepoData | undefined> = [],
+      top100TwentyEightDay: Array<RepoData | undefined> = []
 
     const batchingPromises: Array<Promise<any>> = []
-    for (const repo of top100) {
+    for (const repo of top100External) {
       const dataCollection = firestore
         .collection('repos')
         // We use the repo ID because we want to make sure that we
@@ -200,7 +216,7 @@ exports.update = functions.pubsub
 
       const data: RepoData = {
         timestamp: now,
-        position: top100.indexOf(repo) + 1,
+        position: top100External.indexOf(repo) + 1,
         id: repo.id,
         name: repo.name,
         full_name: repo.full_name,
@@ -217,6 +233,23 @@ exports.update = functions.pubsub
       }
       batch().create(dataCollection.doc(), data)
 
+      // Save the index for later in order to update the undefined
+      // entries in the 1day, 7day, and 28day arrays at the correct index.
+      // This is necessary as all of the past internal repo data is fetched
+      // in parallel, which means that we cannot trust the order they complete in
+      // at all (it is totally random).
+      const repoIndex = top100Internal.length
+      top100Internal.push(data)
+      top100OneDay.push(undefined)
+      top100SevenDay.push(undefined)
+      top100TwentyEightDay.push(undefined)
+
+      if (repoIndex !== data.position - 1) {
+        functions.logger.warn(
+          `Mismatch between repo index ${repoIndex} and repo position ${data.position} of repo ${data.full_name}.`
+        )
+      }
+
       // Create a metadata subset of the repo data that we can include
       // in the stats doc.
       const metadata: RepoMetadata = Object.assign({}, data)
@@ -229,37 +262,39 @@ exports.update = functions.pubsub
         getDaysAgoDoc(dataCollection, now, 28),
         getLatestDoc(dataCollection),
       ]).then(async (snapshots) => {
-        const [one, seven, twentyEight, previous] = snapshots
+        const [one, seven, twentyEight, previous] = snapshots.map((snapshot) =>
+          snapshot?.data()
+        )
 
         // Store stats data.
         const statsData: StatsData = {
           metadata,
           latest: {
-            position: top100.indexOf(repo) + 1,
+            position: top100External.indexOf(repo) + 1,
             stars: repo.stargazers_count,
           },
           ...(one === undefined
             ? {}
             : {
                 oneDay: {
-                  position: one.data()!.position,
-                  stars: one.data()!.stargazers_count,
+                  position: one.position,
+                  stars: one.stargazers_count,
                 },
               }),
           ...(seven === undefined
             ? {}
             : {
                 sevenDay: {
-                  position: seven.data()!.position,
-                  stars: seven.data()!.stargazers_count,
+                  position: seven.position,
+                  stars: seven.stargazers_count,
                 },
               }),
           ...(twentyEight === undefined
             ? {}
             : {
                 twentyEightDay: {
-                  position: twentyEight.data()!.position,
-                  stars: twentyEight.data()!.stargazers_count,
+                  position: twentyEight.position,
+                  stars: twentyEight.stargazers_count,
                 },
               }),
         }
@@ -268,14 +303,18 @@ exports.update = functions.pubsub
           statsData
         )
 
+        top100OneDay[repoIndex] = one
+        top100SevenDay[repoIndex] = seven
+        top100TwentyEightDay[repoIndex] = twentyEight
+
         if (previous !== undefined) {
           // Await all tracking operations in parallel for the repo.
           await Promise.all([
-            trackRepoMilestones(repo, previous.data()!),
+            trackRepoMilestones(repo, previous),
             trackRepoPosition({
               current: data,
-              previous: previous.data()!,
-              top100: top100,
+              previous,
+              top100External,
             }),
           ])
         }
@@ -283,34 +322,35 @@ exports.update = functions.pubsub
       batchingPromises.push(statsPromise)
     }
 
-    // Remove stats docs for repos that are not currently in the top 100.
-    const currentStatsReposPromise = typedCollection<StatsData>('stats')
-      .listDocuments()
-      .then((currentStatsRepos) => {
-        const top100Ids = top100.map((repo) => repo.id.toString())
-        for (const repo of currentStatsRepos) {
-          if (!top100Ids.includes(repo.id)) {
-            batch().delete(repo)
-          }
-        }
-      })
-    batchingPromises.push(currentStatsReposPromise)
-
-    // This way we can run all the 400 document gets for the historical
-    // stats in parallel and not have the function timeout.
+    // Batch removal of stats docs for repos that are not currently in the top 100.
+    batchingPromises.push(batchDeleteUnusedStatsDocs(top100External, batch))
+    // Run all the 400 document gets for the historical stats in parallel
+    // and not have the function timeout.
     await Promise.all(batchingPromises)
-    // Additionally, we can commit the potentially multiple batches in
-    // parallel as well.
-    await Promise.all(batches.map((b) => b.commit()))
 
-    if (false) {
-      // We do not want to spam about the top repo.
-      await tweetTopRepo(top100[0])
+    if (!top100Internal.every((value) => value !== undefined)) {
+      functions.logger.warn(
+        `Missing internal data (${top100Internal.filter(
+          (value) => value === undefined
+        )}).`
+      )
     }
 
-    functions.logger.debug(
-      `Started update at ${start} and ended at ${new Date()}.`
-    )
+    // Run all remaining actions in parallel, i.e. committing the batched operations (which
+    // might be in multiple batches that are limited to 500 ops) and our track functions.
+    await Promise.all([
+      // Save the internal data (both stats and repo data entries).
+      ...batches.map((b) => b.commit()),
+      trackFastestGrowing({
+        context,
+        top100External,
+        top100Internal,
+        top100SevenDay,
+      }),
+      // We want to include a reference to the tweetTopRepo function to satifsy the linter.
+      // And we do not want to execute it on every function call in order to prevent spam.
+      ...(false ? [tweetTopRepo(top100External[0])] : []),
+    ] as Promise<any>[])
   })
 
 /**
@@ -360,6 +400,25 @@ async function getLatestDoc<T>(
     .withConverter(snapshotConverter<T>())
     .get()
   return result.docs.length === 0 ? undefined : result.docs[0]
+}
+
+/**
+ * Batch the deletion of stats docs for repos that are not currently in the top 100.
+ * @param top100External the external data of the top 100 software repos.
+ * @param batch function that returns a write batch that still has open ops.
+ */
+async function batchDeleteUnusedStatsDocs(
+  top100External: Repo[],
+  batch: () => admin.firestore.WriteBatch
+): Promise<void> {
+  const statsDocs = await typedCollection<StatsData>('stats').listDocuments()
+
+  const top100Ids = top100External.map((repo) => repo.id.toString())
+  for (const repo of statsDocs) {
+    if (!top100Ids.includes(repo.id)) {
+      batch().delete(repo)
+    }
+  }
 }
 
 /**
@@ -463,26 +522,28 @@ function getHashtags(repo: Repo): string[] {
  * Posts a tweet about the most starred repo.
  * @param repo the top repo.
  */
-async function tweetTopRepo(repo: Repo) {
+async function tweetTopRepo(repo: Repo): Promise<void> {
+  // Tweet about top repo.
   const repoTag = getRepoTag(repo)
-  functions.logger.info(
-    `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars.`
-  )
-
   const formattedStars = numbro(repo.stargazers_count).format({
     average: true,
     mantissa: 1,
     optionalMantissa: true,
   })
-  await twitter.post('statuses/update', {
-    status: `
+  const tweet = `
 The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
 
 ${await getTwitterTag({
   repo,
   padStringMode: PadStringMode.End,
 })}${getHashtags(repo).join(' ')}
-${repo.html_url}`,
+${repo.html_url}`
+
+  functions.logger.info(
+    `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars (${tweet.length}/280 characters).`
+  )
+  await twitter.post('statuses/update', {
+    status: tweet,
   })
 }
 
@@ -502,29 +563,29 @@ async function trackRepoMilestones(repo: Repo, previous: RepoData) {
     if (currentStars < milestone) break
     if (previousStars >= milestone) continue
 
+    // Tweet about milestone.
     const repoTag = getRepoTag(repo)
-    functions.logger.info(
-      `Tweeting about ${repoTag} reaching the ${milestone} milestone.`
-    )
-
     const formattedMilestone = numbro(milestone).format({
       average: true,
       mantissa: 3,
       optionalMantissa: true,
     })
-    // Tweet about milestone.
-    await twitter.post('statuses/update', {
-      status: `
+    const tweet = `
 The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
 
 Way to go${await getTwitterTag({
-        repo,
-        padStringMode: PadStringMode.Start,
-      })} and congrats on reaching this epic milestone 💪 ${getHashtags(
-        repo
-      ).join(' ')}
-${repo.html_url}
-`,
+      repo,
+      padStringMode: PadStringMode.Start,
+    })} and congrats on reaching this epic milestone 💪 ${getHashtags(
+      repo
+    ).join(' ')}
+${repo.html_url}`
+
+    functions.logger.info(
+      `Tweeting about ${repoTag} reaching the ${milestone} milestone (${tweet.length}/280 characters).`
+    )
+    await twitter.post('statuses/update', {
+      status: tweet,
     })
     return
   }
@@ -539,11 +600,11 @@ ${repo.html_url}
 async function trackRepoPosition({
   current,
   previous,
-  top100,
+  top100External,
 }: {
   current: RepoData
   previous: RepoData
-  top100: Repo[]
+  top100External: Repo[]
 }) {
   // There is nothing to inform about when the position has not changed.
   if (current.position === previous.position) return
@@ -553,7 +614,7 @@ async function trackRepoPosition({
   // capturing it this way.
   if (current.position > previous.position) return
 
-  const repo = top100[current.position - 1]
+  const repo = top100External[current.position - 1]
   if (repo.id !== current.id) {
     functions.logger.warn(
       `Position of ${current.full_name} in the top 100 array does not match actual position.`
@@ -564,9 +625,10 @@ async function trackRepoPosition({
   // For now, we assume the simplest case, which is one repo taking the position of another, where
   // the position gain is at max 1.
   // The previous leader is now at the position that the repo to track was at before.
-  const previousLeader = top100[previous.position - 1]
+  const previousLeader = top100External[previous.position - 1]
 
   // Tweet about one repo overtaking the other.
+  const repoTag = getRepoTag(repo)
   const formattedStars = numbro(current.stargazers_count).format({
     average: true,
     mantissa: 1,
@@ -575,21 +637,153 @@ async function trackRepoPosition({
   const combinedHashtags = Array.from(
     new Set(getHashtags(repo).concat(getHashtags(previousLeader)))
   ).join(' ')
-  await twitter.post(`statuses/update`, {
-    status: `
-${getRepoTag(repo)} just surpassed ${getRepoTag(
-      previousLeader
-    )} in stars on #GitHub 🚀
+  const tweet = `
+${repoTag} just surpassed ${getRepoTag(previousLeader)} in stars on #GitHub 💥
 
 It is now the #${
-      current.position
-    } most starred software repo with ${formattedStars} 🌟
+    current.position
+  } most starred software repo with ${formattedStars} 🌟
 
 ${await getTwitterTag({
   repo,
   padStringMode: PadStringMode.End,
 })}${combinedHashtags}
-${current.html_url}
-`,
+${current.html_url}`
+
+  functions.logger.info(
+    `Tweeting about ${repoTag} surpassing ${getRepoTag(previousLeader)} (${
+      tweet.length
+    }/280 characters).`
+  )
+  await twitter.post(`statuses/update`, {
+    status: tweet,
+  })
+}
+
+/**
+ * Tracks the fastest growing repos out of the top 100 software repos.
+ *
+ * Currently, tweets about it every Monday at 3:15 PM UTC (noop otherwise). We can be sure that the
+ * function is not called twice at 3:15 PM as CRON does not allow scheduling more than once per minute.
+ *
+ * Make sure that the top100 arrays all point to the same repos at the same indexes (indices, duh).
+ * This means that the order of elements in the seven day array might not match the actual positions
+ * of the repos at that time and should instead match the order at the current time.
+ * @param context the function call event context containing the call timestamp.
+ * @param top100External the external GitHub data of the top 100 repos.
+ * @param top100Current the current internal data of the top 100 repos.
+ * @param top100SevenDay the seven day internal data of the top 100 repos (entries might be null).
+ */
+async function trackFastestGrowing({
+  context,
+  top100External,
+  top100Internal,
+  top100SevenDay,
+}: {
+  context: functions.EventContext
+  top100External: Repo[]
+  top100Internal: RepoData[]
+  top100SevenDay: (RepoData | undefined)[]
+}): Promise<void> {
+  const time = new Date(Date.parse(context.timestamp))
+  if (
+    // The day of the week ranges from 0 (Sunday) to 7 (Saturday).
+    time.getUTCDay() !== 1 ||
+    // The hours value ranges from 0 (12 AM) to 23 (11 PM).
+    time.getUTCHours() !== 15 ||
+    // The minutes value ranges from 0 to 59.
+    time.getUTCMinutes() !== 15
+  ) {
+    // We only want to run this on Mondays at 3:15 PM.
+    return
+  }
+
+  if (top100SevenDay.every((value) => value === undefined)) {
+    // If every seven day entry is undefined, we do not want to post anything.
+    return
+  }
+
+  let maxStarsChange = 0
+  let previousMaxStarsChange = 0
+  let repo: Repo | undefined
+  let internal: RepoData | undefined
+
+  for (let i = 0; i < 100; i++) {
+    const sevenDay = top100SevenDay[i]
+    if (sevenDay === undefined) continue
+    const current = top100Internal[i]
+
+    const change = current.stargazers_count - sevenDay.stargazers_count
+    if (change <= maxStarsChange) {
+      if (change === maxStarsChange) {
+        // Edge case where we want to acknowledge that another repo has the same change.
+        previousMaxStarsChange = maxStarsChange
+      }
+      // Note that we will track the *first* repo with the max change only.
+      // The thought behind it is that the first repo is the one with more stars overall,
+      // which means that it should be the more popular one. The idea is that it makes
+      // more sense to post about the more popular. We could think about posting about
+      // both in the future :)
+      // (this case is unlikely)
+      continue
+    }
+
+    previousMaxStarsChange = maxStarsChange
+    maxStarsChange = change
+    repo = top100External[i]
+    internal = current
+  }
+
+  if (repo === undefined || internal === undefined) {
+    // If no repo had a positive change in the past seven days, we do not want to post.
+    return
+  }
+  if (maxStarsChange === 0) {
+    // If the maximum change is 0, we definitely do not want to post as well.
+    return
+  }
+
+  // Tweet about the fastest growing repo of the past week.
+  const repoTag = getRepoTag(repo)
+  const formattedChange = numbro(maxStarsChange).format({
+    thousandSeparated: true,
+  })
+  const formattedStars = numbro(repo.stargazers_count).format({
+    average: true,
+    mantissa: 1,
+    optionalMantissa: true,
+  })
+  let diffText = ' '
+  if (
+    maxStarsChange !== previousMaxStarsChange &&
+    previousMaxStarsChange !== 0
+  ) {
+    const formattedDiff = numbro(
+      maxStarsChange / previousMaxStarsChange - 1
+    ).format({
+      output: 'percent',
+      mantissa: 1,
+      optionalMantissa: true,
+    })
+    diffText = `(${formattedDiff} more than any other repo) `
+  }
+  const tweet = `
+${repoTag} is the fastest growing top 100 software repo on #GitHub of the past week 🚀
+
+It gained a total of ${formattedChange} 🌟 ${diffText}and is #${
+    internal.position
+  } most starred overall w/ ${formattedStars} 🌟
+  
+Way to go${await getTwitterTag({
+    repo,
+    padStringMode: PadStringMode.Start,
+  })} 💪 ${getHashtags(repo).join(' ')}
+${repo.html_url}`
+
+  functions.logger.info(
+    `Tweeting about ${repoTag} being the fastest growing repo of the past week (${tweet.length}/280 characters).`
+  )
+  await twitter.post(`statuses/update`, {
+    status: tweet,
   })
 }
