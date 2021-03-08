@@ -114,8 +114,6 @@ async function accessSecret(name: string): Promise<string> {
 exports.update = functions.pubsub
   .schedule('*/15 * * * *')
   .onRun(async (context) => {
-    functions.logger.debug('timestamp', context.timestamp)
-
     // Load the Twitter client asynchronously on cold start.
     // The reason we have to do this is in order to ensure that
     // the client is loaded before execution as it depends on secrets
@@ -235,6 +233,23 @@ exports.update = functions.pubsub
       }
       batch().create(dataCollection.doc(), data)
 
+      // Save the index for later in order to update the undefined
+      // entries in the 1day, 7day, and 28day arrays at the correct index.
+      // This is necessary as all of the past internal repo data is fetched
+      // in parallel, which means that we cannot trust the order they complete in
+      // at all (it is totally random).
+      const repoIndex = top100Internal.length
+      top100Internal.push(data)
+      top100OneDay.push(undefined)
+      top100SevenDay.push(undefined)
+      top100TwentyEightDay.push(undefined)
+
+      if (repoIndex !== data.position - 1) {
+        functions.logger.warn(
+          `Mismatch between repo index ${repoIndex} and repo position ${data.position} of repo ${data.full_name}.`
+        )
+      }
+
       // Create a metadata subset of the repo data that we can include
       // in the stats doc.
       const metadata: RepoMetadata = Object.assign({}, data)
@@ -288,10 +303,9 @@ exports.update = functions.pubsub
           statsData
         )
 
-        top100Internal.push(data)
-        top100OneDay.push(one)
-        top100SevenDay.push(seven)
-        top100TwentyEightDay.push(twentyEight)
+        top100OneDay[repoIndex] = one
+        top100SevenDay[repoIndex] = seven
+        top100TwentyEightDay[repoIndex] = twentyEight
 
         if (previous !== undefined) {
           // Await all tracking operations in parallel for the repo.
@@ -313,6 +327,14 @@ exports.update = functions.pubsub
     // Run all the 400 document gets for the historical stats in parallel
     // and not have the function timeout.
     await Promise.all(batchingPromises)
+
+    if (!top100Internal.every((value) => value !== undefined)) {
+      functions.logger.warn(
+        `Missing internal data (${top100Internal.filter(
+          (value) => value === undefined
+        )}).`
+      )
+    }
 
     // Run all remaining actions in parallel, i.e. committing the batched operations (which
     // might be in multiple batches that are limited to 500 ops) and our track functions.
@@ -501,25 +523,27 @@ function getHashtags(repo: Repo): string[] {
  * @param repo the top repo.
  */
 async function tweetTopRepo(repo: Repo): Promise<void> {
+  // Tweet about top repo.
   const repoTag = getRepoTag(repo)
-  functions.logger.info(
-    `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars.`
-  )
-
   const formattedStars = numbro(repo.stargazers_count).format({
     average: true,
     mantissa: 1,
     optionalMantissa: true,
   })
-  await twitter.post('statuses/update', {
-    status: `
+  const tweet = `
 The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
 
 ${await getTwitterTag({
   repo,
   padStringMode: PadStringMode.End,
 })}${getHashtags(repo).join(' ')}
-${repo.html_url}`,
+${repo.html_url}`
+
+  functions.logger.info(
+    `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars (${tweet.length}/280 characters).`
+  )
+  await twitter.post('statuses/update', {
+    status: tweet,
   })
 }
 
@@ -539,29 +563,29 @@ async function trackRepoMilestones(repo: Repo, previous: RepoData) {
     if (currentStars < milestone) break
     if (previousStars >= milestone) continue
 
+    // Tweet about milestone.
     const repoTag = getRepoTag(repo)
-    functions.logger.info(
-      `Tweeting about ${repoTag} reaching the ${milestone} milestone.`
-    )
-
     const formattedMilestone = numbro(milestone).format({
       average: true,
       mantissa: 3,
       optionalMantissa: true,
     })
-    // Tweet about milestone.
-    await twitter.post('statuses/update', {
-      status: `
+    const tweet = `
 The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
 
 Way to go${await getTwitterTag({
-        repo,
-        padStringMode: PadStringMode.Start,
-      })} and congrats on reaching this epic milestone 💪 ${getHashtags(
-        repo
-      ).join(' ')}
-${repo.html_url}
-`,
+      repo,
+      padStringMode: PadStringMode.Start,
+    })} and congrats on reaching this epic milestone 💪 ${getHashtags(
+      repo
+    ).join(' ')}
+${repo.html_url}`
+
+    functions.logger.info(
+      `Tweeting about ${repoTag} reaching the ${milestone} milestone (${tweet.length}/280 characters).`
+    )
+    await twitter.post('statuses/update', {
+      status: tweet,
     })
     return
   }
@@ -604,6 +628,7 @@ async function trackRepoPosition({
   const previousLeader = top100External[previous.position - 1]
 
   // Tweet about one repo overtaking the other.
+  const repoTag = getRepoTag(repo)
   const formattedStars = numbro(current.stargazers_count).format({
     average: true,
     mantissa: 1,
@@ -612,29 +637,34 @@ async function trackRepoPosition({
   const combinedHashtags = Array.from(
     new Set(getHashtags(repo).concat(getHashtags(previousLeader)))
   ).join(' ')
-  await twitter.post(`statuses/update`, {
-    status: `
-${getRepoTag(repo)} just surpassed ${getRepoTag(
-      previousLeader
-    )} in stars on #GitHub 🚀
+  const tweet = `
+${repoTag} just surpassed ${getRepoTag(previousLeader)} in stars on #GitHub 💥
 
 It is now the #${
-      current.position
-    } most starred software repo with ${formattedStars} 🌟
+    current.position
+  } most starred software repo with ${formattedStars} 🌟
 
 ${await getTwitterTag({
   repo,
   padStringMode: PadStringMode.End,
 })}${combinedHashtags}
-${current.html_url}
-`,
+${current.html_url}`
+
+  functions.logger.info(
+    `Tweeting about ${repoTag} surpassing ${getRepoTag(previousLeader)} (${
+      tweet.length
+    }/280 characters).`
+  )
+  await twitter.post(`statuses/update`, {
+    status: tweet,
   })
 }
 
 /**
  * Tracks the fastest growing repos out of the top 100 software repos.
  *
- * Currently, tweets about it every Monday at 3:15 PM UTC (noop otherwise).
+ * Currently, tweets about it every Monday at 3:15 PM UTC (noop otherwise). We can be sure that the
+ * function is not called twice at 3:15 PM as CRON does not allow scheduling more than once per minute.
  *
  * Make sure that the top100 arrays all point to the same repos at the same indexes (indices, duh).
  * This means that the order of elements in the seven day array might not match the actual positions
@@ -656,5 +686,104 @@ async function trackFastestGrowing({
   top100SevenDay: (RepoData | undefined)[]
 }): Promise<void> {
   const time = new Date(Date.parse(context.timestamp))
-  functions.logger.debug('day', time.getUTCDay())
+  if (
+    // The day of the week ranges from 0 (Sunday) to 7 (Saturday).
+    time.getUTCDay() !== 1 ||
+    // The hours value ranges from 0 (12 AM) to 23 (11 PM).
+    time.getUTCHours() !== 15 ||
+    // The minutes value ranges from 0 to 59.
+    time.getUTCMinutes() !== 15
+  ) {
+    // We only want to run this on Mondays at 3:15 PM.
+    return
+  }
+
+  if (top100SevenDay.every((value) => value === undefined)) {
+    // If every seven day entry is undefined, we do not want to post anything.
+    return
+  }
+
+  let maxStarsChange = 0
+  let previousMaxStarsChange = 0
+  let repo: Repo | undefined
+  let internal: RepoData | undefined
+
+  for (let i = 0; i < 100; i++) {
+    const sevenDay = top100SevenDay[i]
+    if (sevenDay === undefined) continue
+    const current = top100Internal[i]
+
+    const change = current.stargazers_count - sevenDay.stargazers_count
+    if (change <= maxStarsChange) {
+      if (change === maxStarsChange) {
+        // Edge case where we want to acknowledge that another repo has the same change.
+        previousMaxStarsChange = maxStarsChange
+      }
+      // Note that we will track the *first* repo with the max change only.
+      // The thought behind it is that the first repo is the one with more stars overall,
+      // which means that it should be the more popular one. The idea is that it makes
+      // more sense to post about the more popular. We could think about posting about
+      // both in the future :)
+      // (this case is unlikely)
+      continue
+    }
+
+    previousMaxStarsChange = maxStarsChange
+    maxStarsChange = change
+    repo = top100External[i]
+    internal = current
+  }
+
+  if (repo === undefined || internal === undefined) {
+    // If no repo had a positive change in the past seven days, we do not want to post.
+    return
+  }
+  if (maxStarsChange === 0) {
+    // If the maximum change is 0, we definitely do not want to post as well.
+    return
+  }
+
+  // Tweet about the fastest growing repo of the past week.
+  const repoTag = getRepoTag(repo)
+  const formattedChange = numbro(maxStarsChange).format({
+    thousandSeparated: true,
+  })
+  const formattedStars = numbro(repo.stargazers_count).format({
+    average: true,
+    mantissa: 1,
+    optionalMantissa: true,
+  })
+  let diffText = ' '
+  if (
+    maxStarsChange !== previousMaxStarsChange &&
+    previousMaxStarsChange !== 0
+  ) {
+    const formattedDiff = numbro(
+      maxStarsChange / previousMaxStarsChange - 1
+    ).format({
+      output: 'percent',
+      mantissa: 1,
+      optionalMantissa: true,
+    })
+    diffText = `(${formattedDiff} more than any other repo) `
+  }
+  const tweet = `
+${repoTag} is the fastest growing top 100 software repo on #GitHub of the past week 🚀
+
+It gained a total of ${formattedChange} 🌟 ${diffText}and is #${
+    internal.position
+  } most starred overall w/ ${formattedStars} 🌟
+  
+Way to go${await getTwitterTag({
+    repo,
+    padStringMode: PadStringMode.Start,
+  })} 💪 ${getHashtags(repo).join(' ')}
+${repo.html_url}`
+
+  functions.logger.info(
+    `Tweeting about ${repoTag} being the fastest growing repo of the past week (${tweet.length}/280 characters).`
+  )
+  await twitter.post(`statuses/update`, {
+    status: tweet,
+  })
 }
