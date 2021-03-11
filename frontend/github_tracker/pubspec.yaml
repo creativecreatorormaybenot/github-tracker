@@ -1,0 +1,17 @@
+name: github_tracker
+description: Tracking the top 100 GitHub software repos.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=2.12.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  pedantic: ^1.11.0

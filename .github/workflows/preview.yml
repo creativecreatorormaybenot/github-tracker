@@ -19,8 +19,18 @@ jobs:
     name: hosting of github-tracker
     steps:
       - uses: actions/checkout@v2.3.4
-      - run: |
-          echo "todo: run pre-deploy scripts"
+      - uses: subosito/flutter-action@v1.4.0
+        with:
+          channel: 'dev'
+      - name: Build web app
+        run: |
+          cd frontend/github_tracker
+          flutter pub get
+          flutter build web
+      - name: Move frontend app to backend hosting
+        run: |
+          mkdir backend/public/
+          mv frontend/github_tracker/build/web/* backend/public/
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
