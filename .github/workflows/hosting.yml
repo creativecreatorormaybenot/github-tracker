@@ -28,7 +28,9 @@ jobs:
           flutter pub get
           flutter build web
       - name: Move frontend app to backend hosting
-        run: mv frontend/github_tracker/build/web/* backend/public/
+        run: |
+          mkdir backend/public/
+          mv frontend/github_tracker/build/web/* backend/public/
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_GITHUB_TRACKER_B5C54 }}'
