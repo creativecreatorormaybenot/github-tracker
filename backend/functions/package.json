@@ -16,7 +16,7 @@
   "dependencies": {
     "@google-cloud/secret-manager": "^3.5.0",
     "@octokit/rest": "^18.3.5",
-    "@octokit/types": "^6.12.1",
+    "@octokit/types": "^6.12.2",
     "firebase-admin": "^9.5.0",
     "firebase-functions": "^3.13.2",
     "numbro": "^2.3.2",
