@@ -1,6 +1,6 @@
 {
-  "name": "GitHub Tracker",
-  "short_name": "ght",
+  "name": "ght (GitHub Tracker)",
+  "short_name": "GitHub Tracker",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0175C2",
