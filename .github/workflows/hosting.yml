@@ -8,9 +8,7 @@ on:
       - '.github/workflows/hosting.yml'
       - 'backend/.firebaserc'
       - 'backend/firebase.json'
-      # todo: exclude public (remove it from the repo and generate it during build).
-      # todo: include frontend paths here instead.
-      - 'backend/public/**'
+      - 'frontend/github_tracker/**'
 
 jobs:
   build_and_deploy:
