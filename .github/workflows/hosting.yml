@@ -19,6 +19,8 @@ jobs:
     name: deployment of github-tracker
     steps:
       - uses: actions/checkout@v2.3.4
+        with:
+          lfs: 'true'
       - uses: subosito/flutter-action@v1.4.0
         with:
           channel: 'dev'

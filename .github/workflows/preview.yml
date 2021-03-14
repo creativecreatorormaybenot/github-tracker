@@ -8,9 +8,7 @@ on:
       - '.github/workflows/preview.yml'
       - 'backend/.firebaserc'
       - 'backend/firebase.json'
-      # todo: exclude public (remove it from the repo and generate it during build).
-      # todo: include frontend paths here instead.
-      - 'backend/public/**'
+      - 'frontend/github_tracker/**'
 
 jobs:
   build_and_preview:
@@ -19,6 +17,8 @@ jobs:
     name: hosting of github-tracker
     steps:
       - uses: actions/checkout@v2.3.4
+        with:
+          lfs: 'true'
       - uses: subosito/flutter-action@v1.4.0
         with:
           channel: 'dev'
