@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 void main() {
+  setPathUrlStrategy();
+
   runApp(MaterialApp(
     title: 'ght (GitHub Tracker)',
     home: Scaffold(
