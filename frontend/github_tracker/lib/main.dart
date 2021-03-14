@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 void main() {
   runApp(MaterialApp(
-    title: 'GHT',
+    title: 'ght',
     home: Scaffold(
       body: const Center(
         child: Text(
