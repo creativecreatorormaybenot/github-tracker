@@ -686,9 +686,9 @@ ${current.html_url}`
       tweet.length
     }/280 characters).`
   )
-  await twitter.post(`statuses/update`, {
-    status: tweet,
-  })
+//   await twitter.post(`statuses/update`, {
+//     status: tweet,
+//   })
 }
 
 /**
