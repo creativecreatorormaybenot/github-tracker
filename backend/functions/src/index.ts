@@ -357,7 +357,7 @@ exports.update = functions.pubsub
       ...(false ? [trackTopRepo(top100External)] : []),
     ]
     // Add tracking operations for all of the top 100 repos individually.
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < top100External.length; i++) {
       const repo = top100External[i],
         current = top100Internal[i],
         // oneDay = top100OneDay[i],
