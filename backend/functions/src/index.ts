@@ -202,7 +202,10 @@ exports.update = functions.pubsub
       //    (1 to 100) in the current internal or external data.
       top100OneDay: Array<RepoData | undefined> = [],
       top100SevenDay: Array<RepoData | undefined> = [],
-      top100TwentyEightDay: Array<RepoData | undefined> = []
+      top100TwentyEightDay: Array<RepoData | undefined> = [],
+      // We fetch the previous entries to catch repos reaching milestones, surpassing other
+      // repos, etc.
+      top100Previous: Array<RepoData | undefined> = []
 
     const batchingPromises: Array<Promise<any>> = []
     for (const repo of top100External) {
@@ -243,6 +246,7 @@ exports.update = functions.pubsub
       top100OneDay.push(undefined)
       top100SevenDay.push(undefined)
       top100TwentyEightDay.push(undefined)
+      top100Previous.push(undefined)
 
       if (repoIndex !== data.position - 1) {
         functions.logger.warn(
@@ -306,18 +310,7 @@ exports.update = functions.pubsub
         top100OneDay[repoIndex] = one
         top100SevenDay[repoIndex] = seven
         top100TwentyEightDay[repoIndex] = twentyEight
-
-        if (previous !== undefined) {
-          // Await all tracking operations in parallel for the repo.
-          await Promise.all([
-            trackRepoMilestones(repo, previous),
-            trackRepoPosition({
-              current: data,
-              previous,
-              top100External,
-            }),
-          ])
-        }
+        top100Previous[repoIndex] = previous
       })
       batchingPromises.push(statsPromise)
     }
@@ -341,6 +334,18 @@ exports.update = functions.pubsub
     await Promise.all([
       // Save the internal data (both stats and repo data entries).
       ...batches.map((b) => b.commit()),
+      // Excluding the tracking operations for the moment (see below).
+    ] as Promise<any>[])
+
+    // Run tracking in parallel *after* finishing all data operations (so overall run
+    // sequentially) until https://github.com/draftbit/twitter-lite/issues/156 is fixed.
+    // So *note* that this is a **workaround** for https://github.com/creativecreatorormaybenot/github-tracker/issues/54
+    // in order to avoid losing any more data.
+    // Ideally, we would run both the data and tracking operations in parallel as much
+    // as possible, however, until we find a way to prevent the Twitter client from crashing
+    // the whole function, we need to make sure that all data is saved before we run any
+    // Twitter operations :)
+    const trackingPromises: Array<Promise<any>> = [
       trackFastestGrowing({
         context,
         top100External,
@@ -349,8 +354,32 @@ exports.update = functions.pubsub
       }),
       // We want to include a reference to the tweetTopRepo function to satifsy the linter.
       // And we do not want to execute it on every function call in order to prevent spam.
-      ...(false ? [tweetTopRepo(top100External[0])] : []),
-    ] as Promise<any>[])
+      ...(false ? [trackTopRepo(top100External)] : []),
+    ]
+    // Add tracking operations for all of the top 100 repos individually.
+    for (let i = 0; i < 100; i++) {
+      const repo = top100External[i],
+        current = top100Internal[i],
+        // oneDay = top100OneDay[i],
+        // sevenDay = top100SevenDay[i],
+        // twentyEightDay = top100TwentyEightDay[i],
+        previous = top100Previous[i]
+
+      if (previous !== undefined) {
+        trackingPromises.push(
+          ...[
+            trackRepoMilestones(repo, previous),
+            trackRepoPosition({
+              current,
+              previous,
+              top100External,
+            }),
+          ]
+        )
+      }
+    }
+    // Run all tracking operations in parallel sequentially after the data operations.
+    await Promise.all(trackingPromises)
   })
 
 /**
@@ -519,11 +548,13 @@ function getHashtags(repo: Repo): string[] {
 }
 
 /**
- * Posts a tweet about the most starred repo.
- * @param repo the top repo.
+ * Tracks the top repository.
+ * This posts a tweet about the most starred repo.
+ * @param top100External the external data for the top 100 repos.
  */
-async function tweetTopRepo(repo: Repo): Promise<void> {
+async function trackTopRepo(top100External: Repo[]): Promise<void> {
   // Tweet about top repo.
+  const repo = top100External[0]
   const repoTag = getRepoTag(repo)
   const formattedStars = numbro(repo.stargazers_count).format({
     average: true,
@@ -595,7 +626,7 @@ ${repo.html_url}`
  * Tracks the position of the given repo by comparing the current position to its previous position.
  * @param current the current internal data of the repo to track.
  * @param previous the previous internal data of the repo to track.
- * @param top100 the external data for the top 100 repos.
+ * @param top100External the external data for the top 100 repos.
  */
 async function trackRepoPosition({
   current,
