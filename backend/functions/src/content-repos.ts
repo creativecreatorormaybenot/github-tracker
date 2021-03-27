@@ -88,4 +88,5 @@ export const contentRepos: Array<string> = [
   'doocs/advanced-java',
   'iluwatar/java-design-patterns',
   'azl397985856/leetcode',
+  'trekhleb/javascript-algorithms',
 ]
