@@ -31,6 +31,6 @@ The "last data point" indicates the last point in time that data was successfull
 caused missing data and the "first data point" indicates the point in time when tracking worked without
 incidents again.
 
-[github tracker twitter]: https://twitter.com/GitHubTracker
-[github tracker twitter shield]: https://img.shields.io/twitter/follow/GitHubTracker?label=GitHub%20Tracker&style=social
+[github tracker twitter]: https://twitter.com/github_tracker
+[github tracker twitter shield]: https://img.shields.io/twitter/follow/github_tracker?label=GitHub%20Tracker&style=social
 [github tracker missing data]: https://github.com/creativecreatorormaybenot/github-tracker/issues?q=is%3Aissue+label%3A%22missing+data%22+sort%3Acreated-asc

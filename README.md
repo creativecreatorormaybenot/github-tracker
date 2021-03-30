@@ -22,7 +22,7 @@ Flutter app can be found in
 Another powerful feature of GitHub Tracker is the **Twitter bot** that tweets
 about trackable stats (e.g. milestones, one repo surpassing another, fastest
 growing repos, etc.) automatically. All tweets are posted via
-[@GitHubTracker][github tracker twitter].
+[@github_tracker][github tracker twitter].
 
 todo: insert tweet screenshot here (link to user)
 
@@ -59,8 +59,8 @@ I am not sure what to do about this yet. [Let me know][dm] if you have any ideas
 [github tracker web app]: https://ght.creativemaybeno.dev
 [github tracker web app alternative domain]: https://github-tracker.creativemaybeno.dev
 [github tracker web app shield]: https://img.shields.io/badge/web-app-yellow
-[github tracker twitter]: https://twitter.com/GitHubTracker
-[github tracker twitter shield]: https://img.shields.io/twitter/follow/GitHubTracker?label=GitHub%20Tracker&style=social
+[github tracker twitter]: https://twitter.com/github_tracker
+[github tracker twitter shield]: https://img.shields.io/twitter/follow/github_tracker?label=GitHub%20Tracker&style=social
 [creativemaybeno twitter]: https://twitter.com/creativemaybeno
 [creativemaybeno twitter shield]: https://img.shields.io/twitter/follow/creativemaybeno?label=me&style=social
 [github tracker issues]: https://github.com/creativecreatorormaybenot/github-tracker/issues
