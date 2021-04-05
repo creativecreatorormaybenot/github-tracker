@@ -14,7 +14,9 @@ part 'repo_stats.g.dart';
 /// * [RepoStatsSnapshot], which is the model for the stats snapshots.
 /// * [RepoStatsMetadata], which is the model for the stats metadata.
 // @freezed
-class RepoStats with _$RepoStats {}
+class RepoStats with _$RepoStats {
+  // todo
+}
 
 /// Model for the snapshot of the stats of a single repo.
 ///
@@ -47,7 +49,7 @@ class RepoStatsSnapshot with _$RepoStatsSnapshot {
 ///
 /// See also:
 /// * [RepoStats], which is the model containing the metadata.
-// @freezed
+@freezed
 class RepoStatsMetadata with _$RepoStatsMetadata {
   /// Constructs a [RepoStatsMetadata] object from its values.
   @JsonSerializable(explicitToJson: true)
