@@ -13,8 +13,19 @@ dependencies:
 
   url_strategy: ^0.2.0
 
+  # State management
+  flutter_riverpod: ^0.14.0
+
+  # Model definitions
+  freezed_annotation: ^0.14.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Linting
   pedantic: ^1.11.0
+
+  # Code generation
+  build_runner: ^1.12.2
+  freezed: ^0.14.1+2
