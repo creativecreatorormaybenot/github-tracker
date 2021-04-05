@@ -14,6 +14,9 @@ dependencies:
   # State management
   flutter_riverpod: ^0.14.0
 
+  # Firebase
+  cloud_firestore: ^1.0.3
+
   # Model definitions
   freezed_annotation: ^0.14.1
   json_annotation: ^4.0.1 # Transitive dependency of freezed_annotation (added for transparency).
@@ -28,7 +31,7 @@ dev_dependencies:
   # Linting
   pedantic: ^1.11.0
 
-  # Code generation
+  # Code generation (flutter pub run build_runner build)
   build_runner: ^1.12.2
   freezed: ^0.14.1+2
   json_serializable: ^4.1.0 # Transitive dependency of freezed (added for transparency).
