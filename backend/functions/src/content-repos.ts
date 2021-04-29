@@ -91,4 +91,5 @@ export const contentRepos: Array<string> = [
   'trekhleb/javascript-algorithms',
   '521xueweihan/HelloGitHub',
   'florinpop17/app-ideas',
+  'TheAlgorithms/Python',
 ]
