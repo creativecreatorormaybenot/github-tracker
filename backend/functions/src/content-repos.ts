@@ -93,4 +93,5 @@ export const contentRepos: Array<string> = [
   'florinpop17/app-ideas',
   'TheAlgorithms/Python',
   'DopplerHQ/awesome-interview-questions',
+  'trimstray/the-book-of-secret-knowledge',
 ]
