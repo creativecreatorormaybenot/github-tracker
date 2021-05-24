@@ -89,4 +89,9 @@ export const contentRepos: Array<string> = [
   'iluwatar/java-design-patterns',
   'azl397985856/leetcode',
   'trekhleb/javascript-algorithms',
+  '521xueweihan/HelloGitHub',
+  'florinpop17/app-ideas',
+  'TheAlgorithms/Python',
+  'DopplerHQ/awesome-interview-questions',
+  'trimstray/the-book-of-secret-knowledge',
 ]

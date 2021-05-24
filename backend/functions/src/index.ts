@@ -35,6 +35,8 @@ interface RepoData {
   language: string | null
   html_url: string
   stargazers_count: number
+  open_issues_count: number
+  forks_count: number
   owner: {
     id: number
     login: string
@@ -53,6 +55,8 @@ type RepoMetadata = Pick<
   | 'language'
   | 'html_url'
   | 'owner'
+  | 'open_issues_count'
+  | 'forks_count'
 > &
   Partial<RepoData>
 
@@ -227,6 +231,8 @@ exports.update = functions.pubsub
         language: repo.language,
         html_url: repo.html_url,
         stargazers_count: repo.stargazers_count,
+        open_issues_count: repo.open_issues_count,
+        forks_count: repo.forks_count,
         owner: {
           id: repo.owner.id,
           login: repo.owner.login,
