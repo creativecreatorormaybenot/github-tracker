@@ -6,6 +6,15 @@ void main() {
 
   runApp(MaterialApp(
     title: 'ght (GitHub Tracker)',
+    theme: ThemeData(
+      brightness: Brightness.light,
+      primarySwatch: Colors.grey,
+    ),
+    darkTheme: ThemeData(
+      brightness: Brightness.dark,
+      primarySwatch: Colors.grey,
+    ),
+    themeMode: ThemeMode.system,
     home: Scaffold(
       body: const Center(
         child: Text(
