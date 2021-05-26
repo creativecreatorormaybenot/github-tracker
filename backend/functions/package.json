@@ -14,7 +14,7 @@
   },
   "main": "lib/index.js",
   "dependencies": {
-    "@google-cloud/secret-manager": "^3.7.0",
+    "@google-cloud/secret-manager": "^3.7.1",
     "@octokit/rest": "^18.5.3",
     "@octokit/types": "^6.16.0",
     "firebase-admin": "^9.8.0",
