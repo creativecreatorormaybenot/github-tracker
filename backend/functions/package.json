@@ -17,7 +17,7 @@
     "@google-cloud/secret-manager": "^3.7.1",
     "@octokit/rest": "^18.5.3",
     "@octokit/types": "^6.16.0",
-    "firebase-admin": "^9.8.0",
+    "firebase-admin": "^9.9.0",
     "firebase-functions": "^3.14.1",
     "numbro": "^2.3.2",
     "twitter-lite": "^1.1.0"
