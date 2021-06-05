@@ -94,4 +94,5 @@ export const contentRepos: Array<string> = [
   'TheAlgorithms/Python',
   'DopplerHQ/awesome-interview-questions',
   'trimstray/the-book-of-secret-knowledge',
+  'leonardomso/33-js-concepts',
 ]
