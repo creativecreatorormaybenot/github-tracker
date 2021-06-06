@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:github_tracker/models/json.dart';
 
 part 'repo_stats.freezed.dart';
 part 'repo_stats.g.dart';
@@ -12,9 +13,29 @@ part 'repo_stats.g.dart';
 /// See also:
 /// * [RepoStatsSnapshot], which is the model for the stats snapshots.
 /// * [RepoStatsMetadata], which is the model for the stats metadata.
-// @freezed
+@freezed
 class RepoStats with _$RepoStats {
-  // todo
+  /// Constructs a [RepoStats] object from its values.
+  @JsonSerializable(explicitToJson: true)
+  const factory RepoStats({
+    /// The latest snapshot of the repo's stats.
+    required RepoStatsSnapshot latest,
+
+    /// Additional metadata about the repo.
+    required RepoStatsMetadata metadata,
+
+    /// The snapshot of the repo's stats from one day ago.
+    required RepoStatsSnapshot? oneDay,
+
+    /// The snapshot of the repo's stats from seven days ago.
+    required RepoStatsSnapshot? sevenDay,
+
+    /// The snapshot of the repo's stats from twenty eight days ago.
+    required RepoStatsSnapshot? twentyEightDay,
+  }) = _RepoStats;
+
+  /// Constructs a [RepoStats] given its data as [json].
+  factory RepoStats.fromJson(JsonMap json) => _$RepoStatsFromJson(json);
 }
 
 /// Model for the snapshot of the stats of a single repo.
@@ -38,7 +59,7 @@ class RepoStatsSnapshot with _$RepoStatsSnapshot {
   }) = _RepoStatsSnapshot;
 
   /// Constructs a [RepoStatsSnapshot] from a JSON map.
-  factory RepoStatsSnapshot.fromJson(Map<String, dynamic> json) =>
+  factory RepoStatsSnapshot.fromJson(JsonMap json) =>
       _$RepoStatsSnapshotFromJson(json);
 }
 
@@ -55,6 +76,9 @@ class RepoStatsMetadata with _$RepoStatsMetadata {
   const factory RepoStatsMetadata({
     /// The repo description.
     required String description,
+
+    /// The number of existing forks of the repository.
+    @JsonKey(name: 'forks_count') required int forksCount,
 
     /// The full name of the repo including the repo name and the user or
     /// org name (separated by a slash).
@@ -77,15 +101,19 @@ class RepoStatsMetadata with _$RepoStatsMetadata {
     /// The repo name.
     required String name,
 
+    /// The number of open issues in the repo.
+    @JsonKey(name: 'open_issues_count') required int openIssuesCount,
+
     /// The repo owner metadata.
     required RepoStatsMetadataOwner owner,
 
     /// The timestamp the [RepoStats] were taken at.
-    @JsonKey(fromJson: _dateTimeFromTimestamp) required DateTime timestamp,
+    @JsonKey(fromJson: _dateTimeFromTimestamp, toJson: _dateTimeToTimestamp)
+        required DateTime timestamp,
   }) = _RepoStatsMetadata;
 
   /// Constructs a [RepoStatsMetadata] object from a JSON map.
-  factory RepoStatsMetadata.fromJson(Map<String, dynamic> json) =>
+  factory RepoStatsMetadata.fromJson(JsonMap json) =>
       _$RepoStatsMetadataFromJson(json);
 }
 
@@ -113,8 +141,10 @@ class RepoStatsMetadataOwner with _$RepoStatsMetadataOwner {
   }) = _RepoStatsMetadataOwner;
 
   /// Constructs a [RepoStatsMetadataOwner] object from a JSON map.
-  factory RepoStatsMetadataOwner.fromJson(Map<String, dynamic> json) =>
+  factory RepoStatsMetadataOwner.fromJson(JsonMap json) =>
       _$RepoStatsMetadataOwnerFromJson(json);
 }
 
 DateTime _dateTimeFromTimestamp(Timestamp timestamp) => timestamp.toDate();
+
+Timestamp _dateTimeToTimestamp(DateTime date) => Timestamp.fromDate(date);
