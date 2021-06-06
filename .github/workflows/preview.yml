@@ -26,6 +26,7 @@ jobs:
         run: |
           cd frontend/github_tracker
           flutter pub get
+          flutter pub run build_runner build
           flutter build web
       - name: Move frontend app to backend hosting
         run: |

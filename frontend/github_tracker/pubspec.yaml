@@ -11,10 +11,27 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # State management
+  flutter_riverpod: ^0.14.0+3
+
+  # Firebase
+  cloud_firestore: ^2.2.1
+
+  # Model definitions
+  freezed_annotation: ^0.14.2
+  json_annotation: ^4.0.1 # Transitive dependency of freezed_annotation (added for transparency).
+
+  # Platform utilities
   url_strategy: ^0.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Linting
   pedantic: ^1.11.0
+
+  # Code generation (flutter pub run build_runner build)
+  build_runner: ^2.0.4
+  freezed: ^0.14.2
+  json_serializable: ^4.1.0 # Transitive dependency of freezed (added for transparency).
