@@ -29,7 +29,7 @@ dev_dependencies:
     sdk: flutter
 
   # Linting
-  pedantic: ^1.11.0
+  flutter_lints: ^1.0.3
 
   # Code generation (flutter pub run build_runner build)
   build_runner: ^2.0.4
