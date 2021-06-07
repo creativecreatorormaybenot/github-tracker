@@ -16,10 +16,14 @@ dependencies:
 
   # Firebase
   cloud_firestore: ^2.2.1
+  firebase_auth: ^1.3.0
 
   # Model definitions
   freezed_annotation: ^0.14.2
   json_annotation: ^4.0.1 # Transitive dependency of freezed_annotation (added for transparency).
+
+  # i18n
+  intl: ^0.17.0
 
   # Platform utilities
   url_strategy: ^0.2.0

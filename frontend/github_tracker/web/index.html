@@ -86,6 +86,23 @@
     -->
     <img src="/icons/icon_256.png" class="loader" />
 
+    <!-- Firebase dependencies -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-app.js"></script>
+    <script>
+      var firebaseConfig = {
+        apiKey: "AIzaSyAM2jcS_p9NS5RZxafTkzA79k2z2cna9q8",
+        authDomain: "github-tracker-b5c54.firebaseapp.com",
+        databaseURL: "https://github-tracker-b5c54.firebaseio.com",
+        projectId: "github-tracker-b5c54",
+        storageBucket: "github-tracker-b5c54.appspot.com",
+        messagingSenderId: "430160758592",
+        appId: "1:430160758592:web:d46f583014803797419ca5"
+      };
+      firebase.initializeApp(firebaseConfig);
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-firestore.js"></script>
+
     <!--
       This script installs service_worker.js to provide PWA functionality to
       application.
