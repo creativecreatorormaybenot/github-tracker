@@ -114,7 +114,7 @@ async function accessSecret(name: string): Promise<string> {
  * 2. Update the stats for the top 100 repos.
  * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
-exports.update = functions.pubsub
+export const update = functions.pubsub
   .schedule('*/15 * * * *')
   .onRun(async (context) => {
     // Load the Twitter client asynchronously on cold start.

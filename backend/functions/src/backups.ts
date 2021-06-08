@@ -14,7 +14,7 @@ const bucket = 'gs://github-tracker-backups'
 //    anyway, which is why we are fine.
 const collections: string[] = []
 
-exports.scheduledFirestoreExport = functions.pubsub
+export const scheduledFirestoreExport = functions.pubsub
   .schedule('0 0 */15 * *')
   .onRun(async (context) => {
     const projectId =
@@ -33,7 +33,7 @@ exports.scheduledFirestoreExport = functions.pubsub
     // Log information on the operation.
     const response = responses[0]
     const collectionNames =
-      collections.length == 0
+      collections.length === 0
         ? 'all collections'
         : collections.join(', ')
     functions.logger.info(
