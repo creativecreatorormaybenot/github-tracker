@@ -1,7 +1,6 @@
 import * as functions from 'firebase-functions'
 import * as firestore from '@google-cloud/firestore'
 
-const client = new firestore.v1.FirestoreAdminClient()
 const bucket = 'gs://github-tracker-backups'
 // The repos collection is the only collection that contains
 // meaningful data for backups. The stats collection is completely
@@ -19,6 +18,7 @@ export const scheduledFirestoreExport = functions.pubsub
   .onRun(async (context) => {
     const projectId =
       process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT
+    const client = new firestore.v1.FirestoreAdminClient()
     const databaseName = client.databasePath(
       projectId!,
       '(default)'
