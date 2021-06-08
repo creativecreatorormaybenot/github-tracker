@@ -35,6 +35,9 @@ jobs:
       - name: dart format
         working-directory: ${{ matrix.package }}
         run: dart format . --fix --set-exit-if-changed
+      - name: build_runner build
+        working-directory: ${{ matrix.package }}
+        run: flutter pub run build_runner build
       - run: flutter analyze
         working-directory: ${{ matrix.package }}
 
@@ -60,5 +63,8 @@ jobs:
           channel: ${{ matrix.channel }}
       - run: flutter pub get
         working-directory: ${{ matrix.package }}
+      - name: build_runner build
+        working-directory: ${{ matrix.package }}
+        run: flutter pub run build_runner build
       - run: flutter test
         working-directory: ${{ matrix.package }}
