@@ -21,8 +21,10 @@ jobs:
           - 'dev'
           - 'master'
         package:
-          - 'frontend/github_tracker'
+          - 'github_tracker'
       fail-fast: false
+    env:
+      working-directory: 'frontend/${{ matrix.package }}'
 
     steps:
       - uses: actions/checkout@v2.3.4
@@ -31,15 +33,15 @@ jobs:
           channel: ${{ matrix.channel }}
       - name: pub get
         run: flutter pub get
-        working-directory: ${{ matrix.package }}
+        working-directory: ${{ env.working-directory }}
       - name: dart format
-        working-directory: ${{ matrix.package }}
         run: dart format . --fix --set-exit-if-changed
+        working-directory: ${{ env.working-directory }}
       - name: build_runner build
-        working-directory: ${{ matrix.package }}
         run: flutter pub run build_runner build
+        working-directory: ${{ env.working-directory }}
       - run: flutter analyze
-        working-directory: ${{ matrix.package }}
+        working-directory: ${{ env.working-directory }}
 
   test:
     timeout-minutes: 16
@@ -53,8 +55,10 @@ jobs:
           - 'dev'
           - 'master'
         package:
-          - 'frontend/github_tracker'
+          - 'github_tracker'
       fail-fast: false
+    env:
+      working-directory: 'frontend/${{ matrix.package }}'
 
     steps:
       - uses: actions/checkout@v2.3.4
@@ -62,9 +66,9 @@ jobs:
         with:
           channel: ${{ matrix.channel }}
       - run: flutter pub get
-        working-directory: ${{ matrix.package }}
+        working-directory: ${{ env.working-directory }}
       - name: build_runner build
-        working-directory: ${{ matrix.package }}
         run: flutter pub run build_runner build
+        working-directory: ${{ env.working-directory }}
       - run: flutter test
-        working-directory: ${{ matrix.package }}
+        working-directory: ${{ env.working-directory }}
