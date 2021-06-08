@@ -13,7 +13,7 @@ const bucket = 'gs://github-tracker-backups'
 //    anyway, which is why we are fine.
 const collections: string[] = []
 
-export const scheduledFirestoreExport = functions.pubsub
+export const backup = functions.pubsub
   .schedule('0 0 */15 * *')
   .onRun(async (context) => {
     const projectId =
