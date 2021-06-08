@@ -1,0 +1,18 @@
+name: backend
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/backend.yml'
+      - 'backend/**'
+
+jobs:
+  noop:
+    timeout-minutes: 1
+    runs-on: ubuntu-latest
+    name: noop
+
+    steps:
+      - uses: actions/checkout@v2.3.4
