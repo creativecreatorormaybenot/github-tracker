@@ -9,3 +9,10 @@ on:
       - 'backend/**'
 
 jobs:
+  noop:
+    timeout-minutes: 1
+    runs-on: ubuntu-latest
+    name: noop
+
+    steps:
+      - uses: actions/checkout@v2.3.4
