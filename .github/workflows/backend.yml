@@ -1,1 +1,11 @@
-# todo
+name: backend
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/backend.yml'
+      - 'backend/**'
+
+jobs:
