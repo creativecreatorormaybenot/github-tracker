@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions'
-import * as firestore from '@google-cloud/firestore'
+import * as admin from 'firebase-admin'
 
-const client = new firestore.v1.FirestoreAdminClient()
+const client = new admin.firestore.v1.FirestoreAdminClient()
 const bucket = 'gs://github-tracker-backups'
 // The repos collection is the only collection that contains
 // meaningful data for backups. The stats collection is completely
