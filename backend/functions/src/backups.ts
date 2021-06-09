@@ -29,9 +29,10 @@ export const backup = functions.pubsub
     const collectionNames =
       collections.length === 0
         ? 'all collections'
-        : collections.join(', ')
+        : `collections [${collections.join(', ')}]`
     functions.logger.info(
-      `Exporting everything from ${collectionNames} in ${databaseName} to ${bucket}` +
+      `Exporting everything from ${collectionNames} ` +
+        `in ${databaseName} to ${bucket} ` +
         `with the operation name "${response['name']}".`
     )
   })
