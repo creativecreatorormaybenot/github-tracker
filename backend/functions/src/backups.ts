@@ -9,7 +9,8 @@ const bucket = 'gs://github-tracker-backups'
 const collections = ['repos']
 
 export const backup = functions.pubsub
-  .schedule('0 0 */15 * *')
+  // Backs up the whole database (repos collection) once per week.
+  .schedule('0 0 * * 0')
   .onRun(async (context) => {
     const projectId =
       process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT
