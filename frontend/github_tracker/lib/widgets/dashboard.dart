@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:github_tracker/data/strings.dart';
 import 'package:github_tracker/providers/dashboard.dart';
+import 'package:github_tracker/widgets/stats_table.dart';
 import 'package:intl/intl.dart';
 
 /// Main widget for the main dashboard displaying repo stats.
@@ -37,8 +38,6 @@ class _DashboardState extends State<Dashboard> {
             return ErrorWidget(error);
           },
           data: (data) {
-            final starsFormat = NumberFormat();
-
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
@@ -46,131 +45,29 @@ class _DashboardState extends State<Dashboard> {
                   _page = _page % 7 + 1;
                 });
               },
-              child: Center(
-                child: FractionallySizedBox(
-                  widthFactor: 1 / 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          // todo: extract these columns.
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 4,
-                                  horizontal: 8,
-                                ),
-                                child: Text(
-                                  Strings.dashboardRank,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              for (final stats in data)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                    horizontal: 8,
-                                  ),
-                                  child: Text(
-                                    stats.latest.position.toString(),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: 4,
-                                    horizontal: 8,
-                                  ),
-                                  child: Text(
-                                    Strings.dashboardRepo,
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                for (final stats in data)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                      horizontal: 8,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Image.network(
-                                          stats.metadata.owner.avatarUrl,
-                                          width: DefaultTextStyle.of(context)
-                                              .style
-                                              .fontSize,
-                                          height: DefaultTextStyle.of(context)
-                                              .style
-                                              .fontSize,
-                                          filterQuality: FilterQuality.medium,
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: 4,
-                                          ),
-                                          child: Text(stats.metadata.fullName),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 4,
-                                  horizontal: 8,
-                                ),
-                                child: Text(
-                                  Strings.dashboardStars,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              for (final stats in data)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                    horizontal: 8,
-                                  ),
-                                  child: Text(
-                                    starsFormat.format(stats.latest.stars),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
+              child: FractionallySizedBox(
+                widthFactor: 1 / 2,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    StatsTable(
+                      repoStats: data,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 8,
+                        top: 32,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 8,
-                          top: 32,
+                      child: Text(
+                        Strings.dashboardFooter(
+                          DateFormat('HH:mm, MMMM d, y')
+                              .format(data.first.metadata.timestamp),
                         ),
-                        child: Text(
-                          Strings.dashboardFooter(
-                            DateFormat('HH:mm, MMMM d, y')
-                                .format(data.first.metadata.timestamp),
-                          ),
-                          style: Theme.of(context).textTheme.caption,
-                        ),
+                        style: Theme.of(context).textTheme.caption,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             );
