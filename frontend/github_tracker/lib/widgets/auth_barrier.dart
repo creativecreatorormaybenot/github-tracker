@@ -20,12 +20,12 @@ class AuthBarrier extends ConsumerWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context, ScopedReader watch) {
-    return watch(signedInUser).when(
-      data: (_) => child,
-      loading: () => const _BarrierPlaceholder(),
-      error: (_, __) => const ErrorCode(errorCode: 'ea00'),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref.watch(signedInUser).when(
+          data: (_) => child,
+          loading: () => const _BarrierPlaceholder(),
+          error: (_, __) => const ErrorCode(errorCode: 'ea00'),
+        );
   }
 }
 
