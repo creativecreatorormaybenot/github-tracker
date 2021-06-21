@@ -1,19 +1,18 @@
-import sharp = require('sharp')
+import { read, MIME_JPEG } from 'jimp'
 import { encode } from 'blurhash'
 
 export async function blurhashFromImage(
   imageUrl: string
 ): Promise<string> {
-  const result = await sharp(imageUrl)
-    .raw()
-    .ensureAlpha()
-    .resize(32, 32, { fit: 'inside' })
-    .toBuffer({ resolveWithObject: true })
+  const jimp = await read(imageUrl)
+  jimp.resize(32, 32).opaque()
 
   const hash = encode(
-    new Uint8ClampedArray(result.data),
-    result.info.width,
-    result.info.height,
+    new Uint8ClampedArray(
+      await jimp.getBufferAsync(MIME_JPEG)
+    ),
+    jimp.getWidth(),
+    jimp.getHeight(),
     4,
     4
   )
