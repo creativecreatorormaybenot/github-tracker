@@ -23,7 +23,7 @@ class Strings {
   // ------------------------------ Auth barrier -------------------------------
 
   /// Message that is displayed while showing the auth barrier.
-  static const authBarrierMessage = 'Securing access for first-time session...';
+  static const authBarrierMessage = 'Securing first-time session access...';
 
   // ------------------------------- Error code --------------------------------
 

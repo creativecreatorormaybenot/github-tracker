@@ -30,18 +30,21 @@ class Avatar extends StatelessWidget {
         filterQuality: FilterQuality.medium,
         frameBuilder: (context, child, frame, _) {
           return AnimatedCrossFade(
-            duration: const Duration(milliseconds: 200),
+            duration: const Duration(milliseconds: 150),
             crossFadeState: frame == null
                 ? CrossFadeState.showFirst
                 : CrossFadeState.showSecond,
             firstChild: SizedBox(
               width: size,
               height: size,
-              child: BlurHash(
-                hash: blurHash,
-                color: Colors.transparent,
-                decodingWidth: size ~/ 1,
-                decodingHeight: size ~/ 1,
+              child: Opacity(
+                opacity: 1 / 2,
+                child: BlurHash(
+                  hash: blurHash,
+                  color: Colors.transparent,
+                  decodingWidth: size ~/ 1,
+                  decodingHeight: size ~/ 1,
+                ),
               ),
             ),
             secondChild: child,

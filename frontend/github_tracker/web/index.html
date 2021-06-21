@@ -102,6 +102,13 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-firestore.js"></script>
+    <script>
+      // Calling the current user here ensures that inside of the Flutter app,
+      // the signed in state will immediately be synced (for some reason).
+      // This ensures that we do not have to display a loader for subsequent
+      // sessions.
+      firebase.auth().currentUser;
+    </script>
 
     <!--
       This script installs service_worker.js to provide PWA functionality to
