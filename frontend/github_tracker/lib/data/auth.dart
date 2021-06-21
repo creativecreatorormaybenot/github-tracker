@@ -4,5 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 ///
 /// Returns the signed in user.
 Future<User> signIn() async {
-  return (await FirebaseAuth.instance.signInAnonymously()).user!;
+  return FirebaseAuth.instance.currentUser ??
+      (await FirebaseAuth.instance.signInAnonymously()).user!;
 }
