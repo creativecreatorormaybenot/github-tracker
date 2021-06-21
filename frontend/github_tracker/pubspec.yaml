@@ -29,6 +29,9 @@ dependencies:
   url_launcher: ^6.0.6
   url_strategy: ^0.2.0
 
+  # UI
+  flutter_blurhash: ^0.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

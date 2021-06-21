@@ -127,6 +127,9 @@ class RepoStatsMetadataOwner with _$RepoStatsMetadataOwner {
     /// The image URL to the user or organization avatar.
     @JsonKey(name: 'avatar_url') required String avatarUrl,
 
+    /// The blur hash for the avatar (given by [avatarUrl]) while loading.
+    @JsonKey(name: 'avatar_blurhash') required String avatarBlurHash,
+
     /// The URL pointing to the profile of the repo owner.
     ///
     /// This is an "HTML" URL because it points to the HTML page instead of

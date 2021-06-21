@@ -10,6 +10,7 @@ import Twitter, { TwitterOptions } from 'twitter-lite'
 import numbro from 'numbro'
 import { contentRepos } from './content-repos'
 import { milestones } from './milestones'
+import { blurhashFromImage } from './blurhash'
 
 // Initialize clients that can be initialized synchronously.
 const octokit = new Octokit()
@@ -44,6 +45,12 @@ interface RepoData {
   }
 }
 
+interface OwnerMetadata {
+  owner: {
+    avatar_blurhash: string
+  }
+}
+
 type RepoMetadata = Pick<
   RepoData,
   | 'timestamp'
@@ -57,7 +64,8 @@ type RepoMetadata = Pick<
   | 'open_issues_count'
   | 'forks_count'
 > &
-  Partial<RepoData>
+  Partial<RepoData> &
+  OwnerMetadata
 
 interface StatsDayData {
   position: number
@@ -259,12 +267,6 @@ export const update = functions.pubsub
         )
       }
 
-      // Create a metadata subset of the repo data that we can include
-      // in the stats doc.
-      const metadata: RepoMetadata = Object.assign({}, data)
-      delete metadata.position
-      delete metadata.stargazers_count
-
       const statsPromise = Promise.all([
         getDaysAgoDoc(dataCollection, now, 1),
         getDaysAgoDoc(dataCollection, now, 7),
@@ -274,6 +276,21 @@ export const update = functions.pubsub
         const [one, seven, twentyEight, previous] = snapshots.map((snapshot) =>
           snapshot?.data()
         )
+
+        // Create a metadata subset of the repo data that we can include
+        // in the stats doc.
+        const metadata: RepoMetadata = Object.assign(
+          {
+            owner: {
+              avatar_blurhash: await blurhashFromImage(
+                data.owner.avatar_url
+              ),
+            },
+          },
+          data
+        )
+        delete metadata.position
+        delete metadata.stargazers_count
 
         // Store stats data.
         const statsData: StatsData = {
