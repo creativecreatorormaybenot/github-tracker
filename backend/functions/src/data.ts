@@ -8,6 +8,7 @@ import {
 } from '@octokit/types'
 import Twitter, { TwitterOptions } from 'twitter-lite'
 import numbro from 'numbro'
+import { merge } from 'lodash'
 import { contentRepos } from './content-repos'
 import { milestones } from './milestones'
 import { blurhashFromImage } from './blurhash'
@@ -45,12 +46,16 @@ interface RepoData {
   }
 }
 
-interface OwnerMetadata {
+interface AdditionalMetadata {
   owner: {
     avatar_blurhash: string
   }
 }
 
+/** 
+ * RepoMetadata is used for stats and assembled using a subset
+ * of RepoData and some AdditionalMetadata.
+ */
 type RepoMetadata = Pick<
   RepoData,
   | 'timestamp'
@@ -65,7 +70,7 @@ type RepoMetadata = Pick<
   | 'forks_count'
 > &
   Partial<RepoData> &
-  OwnerMetadata
+  AdditionalMetadata
 
 interface StatsDayData {
   position: number
@@ -279,7 +284,7 @@ export const update = functions.pubsub
 
         // Create a metadata subset of the repo data that we can include
         // in the stats doc.
-        const metadata: RepoMetadata = Object.assign(
+        const metadata: RepoMetadata = merge(
           {
             owner: {
               avatar_blurhash: await blurhashFromImage(
