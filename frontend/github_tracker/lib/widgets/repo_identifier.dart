@@ -22,6 +22,7 @@ class RepoIdentifier extends StatelessWidget {
       children: [
         Avatar(
           url: stats.metadata.owner.avatarUrl,
+          blurHash: stats.metadata.owner.avatarBlurHash,
         ),
         Padding(
           padding: const EdgeInsets.only(
