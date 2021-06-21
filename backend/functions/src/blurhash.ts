@@ -1,4 +1,4 @@
-import { read, MIME_JPEG } from 'jimp'
+import { read } from 'jimp'
 import { encode } from 'blurhash'
 
 export async function blurhashFromImage(
@@ -8,9 +8,7 @@ export async function blurhashFromImage(
   jimp.resize(32, 32).opaque()
 
   const hash = encode(
-    new Uint8ClampedArray(
-      await jimp.getBufferAsync(MIME_JPEG)
-    ),
+    new Uint8ClampedArray(jimp.bitmap.data),
     jimp.getWidth(),
     jimp.getHeight(),
     4,
