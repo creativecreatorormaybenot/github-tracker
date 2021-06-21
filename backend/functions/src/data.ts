@@ -426,8 +426,8 @@ async function getDaysAgoDoc<T>(
     .where(
       'timestamp',
       '>=',
-      // Give thirty seconds of slack for potential function execution deviations.
-      admin.firestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 30)
+      // Give five minutes of slack for potential function execution deviations.
+      admin.firestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 300)
     )
     .where(
       'timestamp',
