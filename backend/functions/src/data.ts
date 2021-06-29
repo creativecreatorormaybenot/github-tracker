@@ -52,7 +52,7 @@ interface AdditionalMetadata {
   }
 }
 
-/** 
+/**
  * RepoMetadata is used for stats and assembled using a subset
  * of RepoData and some AdditionalMetadata.
  */
@@ -72,17 +72,19 @@ type RepoMetadata = Pick<
   Partial<RepoData> &
   AdditionalMetadata
 
-interface StatsDayData {
+interface StatsSnapshot {
   position: number
   stars: number
+  positionChange: number
+  starChange: number
 }
 
 interface StatsData {
   metadata: RepoMetadata
-  latest: StatsDayData
-  oneDay?: StatsDayData
-  sevenDay?: StatsDayData
-  twentyEightDay?: StatsDayData
+  latest: StatsSnapshot
+  oneDay?: StatsSnapshot
+  sevenDay?: StatsSnapshot
+  twentyEightDay?: StatsSnapshot
 }
 
 function snapshotConverter<T>(): admin.firestore.FirestoreDataConverter<T> {
@@ -287,9 +289,7 @@ export const update = functions.pubsub
         const metadata: RepoMetadata = merge(
           {
             owner: {
-              avatar_blurhash: await blurhashFromImage(
-                data.owner.avatar_url
-              ),
+              avatar_blurhash: await blurhashFromImage(data.owner.avatar_url),
             },
           },
           data
@@ -300,33 +300,33 @@ export const update = functions.pubsub
         // Store stats data.
         const statsData: StatsData = {
           metadata,
-          latest: {
-            position: top100External.indexOf(repo) + 1,
-            stars: repo.stargazers_count,
-          },
+          latest: computeStatsSnapshot({
+            snapshotData: data,
+            latestData: data,
+          }),
           ...(one === undefined
             ? {}
             : {
-                oneDay: {
-                  position: one.position,
-                  stars: one.stargazers_count,
-                },
+                oneDay: computeStatsSnapshot({
+                  snapshotData: one,
+                  latestData: data,
+                }),
               }),
           ...(seven === undefined
             ? {}
             : {
-                sevenDay: {
-                  position: seven.position,
-                  stars: seven.stargazers_count,
-                },
+                sevenDay: computeStatsSnapshot({
+                  snapshotData: seven,
+                  latestData: data,
+                }),
               }),
           ...(twentyEight === undefined
             ? {}
             : {
-                twentyEightDay: {
-                  position: twentyEight.position,
-                  stars: twentyEight.stargazers_count,
-                },
+                twentyEightDay: computeStatsSnapshot({
+                  snapshotData: twentyEight,
+                  latestData: data,
+                }),
               }),
         }
         batch().set(
@@ -408,6 +408,21 @@ export const update = functions.pubsub
     // Run all tracking operations in parallel sequentially after the data operations.
     await Promise.all(trackingPromises)
   })
+
+function computeStatsSnapshot({
+  snapshotData,
+  latestData,
+}: {
+  snapshotData: RepoData
+  latestData: RepoData
+}): StatsSnapshot {
+  return {
+    position: snapshotData.position,
+    stars: snapshotData.stargazers_count,
+    positionChange: snapshotData.position - latestData.position,
+    starChange: latestData.stargazers_count - snapshotData.stargazers_count,
+  }
+}
 
 /**
  * Get a doc that is dated a number of days ago compared to now.
@@ -713,9 +728,9 @@ ${current.html_url}`
       tweet.length
     }/280 characters).`
   )
-//   await twitter.post(`statuses/update`, {
-//     status: tweet,
-//   })
+  //   await twitter.post(`statuses/update`, {
+  //     status: tweet,
+  //   })
 }
 
 /**
