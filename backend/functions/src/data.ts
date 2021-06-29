@@ -420,7 +420,7 @@ function computeStatsSnapshot({
     position: snapshotData.position,
     stars: snapshotData.stargazers_count,
     positionChange: snapshotData.position - latestData.position,
-    starChange: latestData.stargazers_count - latestData.stargazers_count,
+    starChange: latestData.stargazers_count - snapshotData.stargazers_count,
   }
 }
 
