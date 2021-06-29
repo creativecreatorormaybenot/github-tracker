@@ -56,6 +56,24 @@ class RepoStatsSnapshot with _$RepoStatsSnapshot {
 
     /// The current number of stars (stargazers count) of the repo.
     required int stars,
+
+    /// The change in [position] when comparing this snapshot to the latest
+    /// snapshot.
+    ///
+    /// The latest snapshot is represented by [RepoStats.latest].
+    ///
+    /// This value is negative if the latest position is greater (worse)
+    /// than the position of this snapshot.
+    required int positionChange,
+
+    /// The change in [stars] when comparing this snapshot to the latest
+    /// snapshot.
+    ///
+    /// The latest snapshot is represented by [RepoStats.latest].
+    ///
+    /// This value is negative if the latest stars are smaller (worse)
+    /// than the stars of this snapshot.
+    required int starChange,
   }) = _RepoStatsSnapshot;
 
   /// Constructs a [RepoStatsSnapshot] from a JSON map.

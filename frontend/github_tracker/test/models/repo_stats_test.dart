@@ -5,7 +5,12 @@ void main() {
   group('$RepoStatsSnapshot', () {
     test('fails with invalid position', () {
       expect(
-        () => RepoStatsSnapshot(position: 0, stars: 42),
+        () => RepoStatsSnapshot(
+          position: 0,
+          stars: 42,
+          positionChange: 0,
+          starChange: 0,
+        ),
         throwsAssertionError,
       );
       expect(
