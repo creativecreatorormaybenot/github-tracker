@@ -297,8 +297,6 @@ export const update = functions.pubsub
         delete metadata.position
         delete metadata.stargazers_count
 
-        // Store the current position and stars in order to calculate the
-        // positionChange and starChange for the other snapshots.
         // Store stats data.
         const statsData: StatsData = {
           metadata,
