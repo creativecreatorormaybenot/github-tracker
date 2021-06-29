@@ -52,7 +52,7 @@ interface AdditionalMetadata {
   }
 }
 
-/** 
+/**
  * RepoMetadata is used for stats and assembled using a subset
  * of RepoData and some AdditionalMetadata.
  */
@@ -72,17 +72,19 @@ type RepoMetadata = Pick<
   Partial<RepoData> &
   AdditionalMetadata
 
-interface StatsDayData {
+interface StatsSnapshot {
   position: number
   stars: number
+  positionChange: number
+  starChange: number
 }
 
 interface StatsData {
   metadata: RepoMetadata
-  latest: StatsDayData
-  oneDay?: StatsDayData
-  sevenDay?: StatsDayData
-  twentyEightDay?: StatsDayData
+  latest: StatsSnapshot
+  oneDay?: StatsSnapshot
+  sevenDay?: StatsSnapshot
+  twentyEightDay?: StatsSnapshot
 }
 
 function snapshotConverter<T>(): admin.firestore.FirestoreDataConverter<T> {
@@ -287,9 +289,7 @@ export const update = functions.pubsub
         const metadata: RepoMetadata = merge(
           {
             owner: {
-              avatar_blurhash: await blurhashFromImage(
-                data.owner.avatar_url
-              ),
+              avatar_blurhash: await blurhashFromImage(data.owner.avatar_url),
             },
           },
           data
@@ -297,36 +297,45 @@ export const update = functions.pubsub
         delete metadata.position
         delete metadata.stargazers_count
 
+        // Store the current position and stars in order to calculate the
+        // positionChange and starChange for the other snapshots.
+        const currentPosition = top100External.indexOf(repo) + 1,
+          currentStars = repo.stargazers_count
         // Store stats data.
         const statsData: StatsData = {
           metadata,
           latest: {
-            position: top100External.indexOf(repo) + 1,
-            stars: repo.stargazers_count,
+            position: currentPosition,
+            stars: currentStars,
+            positionChange: 0,
+            starChange: 0,
           },
           ...(one === undefined
             ? {}
             : {
-                oneDay: {
-                  position: one.position,
-                  stars: one.stargazers_count,
-                },
+                oneDay: computeStatsSnapshot({
+                  repoData: one,
+                  currentPosition: currentPosition,
+                  currentStars: currentStars,
+                }),
               }),
           ...(seven === undefined
             ? {}
             : {
-                sevenDay: {
-                  position: seven.position,
-                  stars: seven.stargazers_count,
-                },
+                sevenDay: computeStatsSnapshot({
+                  repoData: seven,
+                  currentPosition: currentPosition,
+                  currentStars: currentStars,
+                }),
               }),
           ...(twentyEight === undefined
             ? {}
             : {
-                twentyEightDay: {
-                  position: twentyEight.position,
-                  stars: twentyEight.stargazers_count,
-                },
+                twentyEightDay: computeStatsSnapshot({
+                  repoData: twentyEight,
+                  currentPosition: currentPosition,
+                  currentStars: currentStars,
+                }),
               }),
         }
         batch().set(
@@ -408,6 +417,23 @@ export const update = functions.pubsub
     // Run all tracking operations in parallel sequentially after the data operations.
     await Promise.all(trackingPromises)
   })
+
+function computeStatsSnapshot({
+  repoData,
+  currentPosition,
+  currentStars,
+}: {
+  repoData: RepoData
+  currentPosition: number
+  currentStars: number
+}): StatsSnapshot {
+  return {
+    position: repoData.position,
+    stars: repoData.stargazers_count,
+    positionChange: repoData.position - currentPosition,
+    starChange: currentStars - repoData.stargazers_count,
+  }
+}
 
 /**
  * Get a doc that is dated a number of days ago compared to now.
@@ -713,9 +739,9 @@ ${current.html_url}`
       tweet.length
     }/280 characters).`
   )
-//   await twitter.post(`statuses/update`, {
-//     status: tweet,
-//   })
+  //   await twitter.post(`statuses/update`, {
+  //     status: tweet,
+  //   })
 }
 
 /**
