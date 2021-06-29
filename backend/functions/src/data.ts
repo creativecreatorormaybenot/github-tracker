@@ -299,42 +299,35 @@ export const update = functions.pubsub
 
         // Store the current position and stars in order to calculate the
         // positionChange and starChange for the other snapshots.
-        const currentPosition = top100External.indexOf(repo) + 1,
-          currentStars = repo.stargazers_count
         // Store stats data.
         const statsData: StatsData = {
           metadata,
-          latest: {
-            position: currentPosition,
-            stars: currentStars,
-            positionChange: 0,
-            starChange: 0,
-          },
+          latest: computeStatsSnapshot({
+            snapshotData: data,
+            latestData: data,
+          }),
           ...(one === undefined
             ? {}
             : {
                 oneDay: computeStatsSnapshot({
-                  repoData: one,
-                  currentPosition: currentPosition,
-                  currentStars: currentStars,
+                  snapshotData: one,
+                  latestData: data,
                 }),
               }),
           ...(seven === undefined
             ? {}
             : {
                 sevenDay: computeStatsSnapshot({
-                  repoData: seven,
-                  currentPosition: currentPosition,
-                  currentStars: currentStars,
+                  snapshotData: seven,
+                  latestData: data,
                 }),
               }),
           ...(twentyEight === undefined
             ? {}
             : {
                 twentyEightDay: computeStatsSnapshot({
-                  repoData: twentyEight,
-                  currentPosition: currentPosition,
-                  currentStars: currentStars,
+                  snapshotData: twentyEight,
+                  latestData: data,
                 }),
               }),
         }
@@ -419,19 +412,17 @@ export const update = functions.pubsub
   })
 
 function computeStatsSnapshot({
-  repoData,
-  currentPosition,
-  currentStars,
+  snapshotData,
+  latestData,
 }: {
-  repoData: RepoData
-  currentPosition: number
-  currentStars: number
+  snapshotData: RepoData
+  latestData: RepoData
 }): StatsSnapshot {
   return {
-    position: repoData.position,
-    stars: repoData.stargazers_count,
-    positionChange: repoData.position - currentPosition,
-    starChange: currentStars - repoData.stargazers_count,
+    position: snapshotData.position,
+    stars: snapshotData.stargazers_count,
+    positionChange: snapshotData.position - latestData.position,
+    starChange: latestData.stargazers_count - latestData.stargazers_count,
   }
 }
 
