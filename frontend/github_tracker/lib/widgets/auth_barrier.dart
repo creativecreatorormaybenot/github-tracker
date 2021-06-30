@@ -22,6 +22,8 @@ class AuthBarrier extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(signedInUser);
 
+    print('AuthBarrier.build $user');
+
     if (user == null) return const _BarrierPlaceholder();
     return child;
   }

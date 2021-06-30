@@ -8,7 +8,12 @@ final signedInUser = Provider<User?>((ref) {
   final data = user.data;
 
   // Try to return the user synchronously if possible.
-  if (data == null) return currentUser;
+  if (data == null) {
+    final fixeduser = currentUser;
+    print('fixedUser $data $fixeduser');
+    return fixeduser;
+  }
+  print('signedInUser $data');
   return data.value;
 });
 
