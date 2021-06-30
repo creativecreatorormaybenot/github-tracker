@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:github_tracker/data/firestore/repo_stats.dart';
 import 'package:github_tracker/models/dashboard_state.dart';
-import 'package:github_tracker/models/repo_stats.dart';
 
 /// Provides the [DashboardNotifier]
 final dashboardProvider =
