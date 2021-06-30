@@ -84,7 +84,9 @@ class Dashboard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   MouseRegion(
-                    cursor: SystemMouseCursors.click,
+                    cursor: state is DashboardLoadingState
+                        ? SystemMouseCursors.wait
+                        : SystemMouseCursors.click,
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: state is DashboardLoadingState
@@ -125,10 +127,11 @@ class Dashboard extends ConsumerWidget {
               ),
             ),
           if (state is DashboardLoadingState)
-            const Positioned.fill(
+            Positioned.fill(
               child: Align(
-                alignment: Alignment.bottomRight,
-                child: Padding(
+                alignment:
+                    data == null ? Alignment.center : Alignment.bottomRight,
+                child: const Padding(
                   padding: EdgeInsets.all(8),
                   child: Text(Strings.dashboardLoadingData),
                 ),
