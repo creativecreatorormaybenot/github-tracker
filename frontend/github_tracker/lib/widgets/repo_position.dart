@@ -14,13 +14,8 @@ class RepoPosition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          stats.latest.position.toString(),
-        ),
-      ],
+    return Text(
+      stats.latest.position.toString(),
     );
   }
 }

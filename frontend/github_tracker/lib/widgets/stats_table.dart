@@ -207,7 +207,14 @@ class _Cell extends StatelessWidget {
       padding: _kCellPadding,
       child: SizedBox(
         height: height,
-        child: child,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Ensure that every cell is vertically centered in its row :)
+            child,
+          ],
+        ),
       ),
     );
   }
