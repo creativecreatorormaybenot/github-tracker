@@ -73,7 +73,7 @@ class RepoStatsSnapshot with _$RepoStatsSnapshot {
     ///
     /// This value is negative if the latest stars are smaller (worse)
     /// than the stars of this snapshot.
-    required int starChange,
+    required int starsChange,
   }) = _RepoStatsSnapshot;
 
   /// Constructs a [RepoStatsSnapshot] from a JSON map.

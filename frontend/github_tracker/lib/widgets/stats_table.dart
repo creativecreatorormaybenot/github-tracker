@@ -6,6 +6,7 @@ import 'package:github_tracker/models/repo_stats.dart';
 import 'package:github_tracker/widgets/repo_identifier.dart';
 import 'package:github_tracker/widgets/repo_position.dart';
 import 'package:github_tracker/widgets/repo_stars.dart';
+import 'package:github_tracker/widgets/stats_change.dart';
 
 /// Table for displaying stats of multiple repos.
 class StatsTable extends StatelessWidget {
@@ -22,6 +23,49 @@ class StatsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        // todo: extract/refactor this code.
+        _Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          header: const Tooltip(
+            message: Strings.dashboardOneDayTooltip,
+            child: Text(Strings.dashboardOneDay),
+          ),
+          children: [
+            for (final stats in repoStats)
+              StatsChange(
+                change: stats.oneDay?.positionChange,
+                arrowPosition: StatsChangeArrowPosition.back,
+              ),
+          ],
+        ),
+        _Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          header: const Tooltip(
+            message: Strings.dashboardSevenDayTooltip,
+            child: Text(Strings.dashboardSevenDay),
+          ),
+          children: [
+            for (final stats in repoStats)
+              StatsChange(
+                change: stats.sevenDay?.positionChange,
+                arrowPosition: StatsChangeArrowPosition.back,
+              ),
+          ],
+        ),
+        _Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          header: const Tooltip(
+            message: Strings.dashboardTwentyEightDayTooltip,
+            child: Text(Strings.dashboardTwentyEightDay),
+          ),
+          children: [
+            for (final stats in repoStats)
+              StatsChange(
+                change: stats.twentyEightDay?.positionChange,
+                arrowPosition: StatsChangeArrowPosition.back,
+              ),
+          ],
+        ),
         _Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           header: const Text(Strings.dashboardRank),
@@ -43,6 +87,49 @@ class StatsTable extends StatelessWidget {
           header: const Text(Strings.dashboardStars),
           children: [
             for (final stats in repoStats) RepoStars(stats: stats),
+          ],
+        ),
+        // todo: extract/refactor this code.
+        _Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          header: const Tooltip(
+            message: Strings.dashboardTwentyEightDayTooltip,
+            child: Text(Strings.dashboardTwentyEightDay),
+          ),
+          children: [
+            for (final stats in repoStats)
+              StatsChange(
+                change: stats.twentyEightDay?.starsChange,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+          ],
+        ),
+        _Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          header: const Tooltip(
+            message: Strings.dashboardSevenDayTooltip,
+            child: Text(Strings.dashboardSevenDay),
+          ),
+          children: [
+            for (final stats in repoStats)
+              StatsChange(
+                change: stats.sevenDay?.starsChange,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+          ],
+        ),
+        _Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          header: const Tooltip(
+            message: Strings.dashboardOneDayTooltip,
+            child: Text(Strings.dashboardOneDay),
+          ),
+          children: [
+            for (final stats in repoStats)
+              StatsChange(
+                change: stats.oneDay?.starsChange,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
           ],
         ),
       ],
