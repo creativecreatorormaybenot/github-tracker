@@ -6,8 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 ///
 /// The stream *does not* update when the user signs out (never returns null
 /// user).
-Stream<User> signIn() async* {
-  yield (await FirebaseAuth.instance.signInAnonymously()).user!;
+Stream<User?> signIn() async* {
+  yield FirebaseAuth.instance.currentUser;
+  yield (await FirebaseAuth.instance.signInAnonymously()).user;
 
   await for (final user in FirebaseAuth.instance.userChanges()) {
     if (user == null) continue;

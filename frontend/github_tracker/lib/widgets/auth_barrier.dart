@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:github_tracker/data/strings.dart';
 import 'package:github_tracker/providers/auth.dart';
+import 'package:github_tracker/widgets/error_code.dart';
 
 /// A widget that enforces a barrier requiring authentication.
 ///
@@ -22,10 +23,16 @@ class AuthBarrier extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(signedInUser);
 
-    print('AuthBarrier.build $user');
-
-    if (user == null) return const _BarrierPlaceholder();
-    return child;
+    return user.when(
+      data: (user) => child,
+      loading: () => const _BarrierPlaceholder(),
+      error: (_, __) {
+        print('AuthBarrier.build $_ $__');
+        return const ErrorCode(
+          errorCode: 'ea00',
+        );
+      },
+    );
   }
 }
 
