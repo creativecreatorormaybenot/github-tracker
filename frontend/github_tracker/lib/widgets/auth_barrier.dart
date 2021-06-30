@@ -27,7 +27,6 @@ class AuthBarrier extends ConsumerWidget {
       data: (user) => child,
       loading: () => const _BarrierPlaceholder(),
       error: (_, __) {
-        print('AuthBarrier.build $_ $__');
         return const ErrorCode(
           errorCode: 'ea00',
         );

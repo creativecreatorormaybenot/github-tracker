@@ -12,11 +12,11 @@ dependencies:
     sdk: flutter
 
   # State management
-  flutter_riverpod: ^1.0.0-dev.1
+  flutter_riverpod: ^1.0.0-dev.2
 
   # Firebase
   cloud_firestore: ^2.2.1
-  firebase_auth: ^1.3.0
+  firebase_auth: ^1.4.1
 
   # Model definitions
   freezed_annotation: ^0.14.2
