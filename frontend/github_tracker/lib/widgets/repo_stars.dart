@@ -15,13 +15,8 @@ class RepoStars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          NumberFormat().format(stats.latest.stars),
-        ),
-      ],
+    return Text(
+      NumberFormat().format(stats.latest.stars),
     );
   }
 }
