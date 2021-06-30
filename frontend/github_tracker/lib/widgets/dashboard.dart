@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:github_tracker/data/strings.dart';
-import 'package:github_tracker/models/dashboard_state.dart';
 import 'package:github_tracker/providers/dashboard.dart';
 import 'package:github_tracker/widgets/error_code.dart';
 import 'package:github_tracker/widgets/link.dart';
@@ -61,7 +60,6 @@ class Dashboard extends ConsumerWidget {
               case AxisDirection.down:
               case AxisDirection.right:
                 ref.read(dashboardProvider.notifier).updatePage(1);
-                ;
                 break;
               case AxisDirection.up:
               case AxisDirection.left:
