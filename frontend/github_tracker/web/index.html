@@ -110,6 +110,16 @@
       firebase.auth().currentUser;
     </script>
 
+    <script>
+      // This prevents zooming in using CTRL + mouse wheel.
+      // See https://stackoverflow.com/a/67039291/6509751.
+      document.addEventListener('wheel', function(e) {
+        e.ctrlKey && e.preventDefault();
+      }, {
+        passive: false,
+      });
+    </script>
+
     <!--
       This script installs service_worker.js to provide PWA functionality to
       application.

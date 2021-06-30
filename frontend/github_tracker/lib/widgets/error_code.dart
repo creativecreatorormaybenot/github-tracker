@@ -10,7 +10,7 @@ class ErrorCode extends StatefulWidget {
 
   /// The error code to be displayed to the user.
   ///
-  /// This should be in the format of "e<feature key><error number>", where
+  /// This should be in the format of `e<feature key><error number>`, where
   /// the feature key should be the least lower case letters to identify the
   /// feature and the number should simply count through the possible places
   /// errors can occur within the feature as a two digit number.

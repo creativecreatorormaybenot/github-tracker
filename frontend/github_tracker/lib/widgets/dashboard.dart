@@ -1,75 +1,141 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:github_tracker/data/strings.dart';
+import 'package:github_tracker/models/dashboard_state.dart';
 import 'package:github_tracker/providers/dashboard.dart';
+import 'package:github_tracker/widgets/error_code.dart';
+import 'package:github_tracker/widgets/link.dart';
 import 'package:github_tracker/widgets/stats_table.dart';
 import 'package:intl/intl.dart';
 
 /// Main widget for the main dashboard displaying repo stats.
-class Dashboard extends ConsumerStatefulWidget {
+class Dashboard extends ConsumerWidget {
   /// Constructs a [Dashboard] widget.
   const Dashboard({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<Dashboard> createState() => _DashboardState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(dashboardProvider);
 
-class _DashboardState extends ConsumerState<Dashboard> {
-  var _page = 1;
+    if (state is DashboardErrorState) {
+      return const ErrorCode(
+        errorCode: 'ed00',
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    // todo: completely remove this.
-    // We do not want to have the pagination like this - this is only for
-    // prototyping / debugging.
-    // And also we would not want to handle the state here.
-    final stats = ref.watch(repoStats((_page - 1) * 15 + 1));
-
-    // todo: refactor this - I hate this syntax.
-    // This syntax is only acceptable if it directly returns extracted
-    // widgets.
-    return stats.when(
-      loading: () {
-        return const SizedBox();
+    final data = state is DashboardDataState
+        ? state.data
+        : state is DashboardLoadingState
+            ? state.previousData
+            : null;
+    return FocusableActionDetector(
+      autofocus: true,
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.arrowUp): const ScrollIntent(
+          direction: AxisDirection.up,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.arrowDown): const ScrollIntent(
+          direction: AxisDirection.down,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.arrowLeft): const ScrollIntent(
+          direction: AxisDirection.left,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.arrowRight): const ScrollIntent(
+          direction: AxisDirection.right,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.pageUp): const ScrollIntent(
+          direction: AxisDirection.up,
+          type: ScrollIncrementType.page,
+        ),
+        LogicalKeySet(LogicalKeyboardKey.pageDown): const ScrollIntent(
+          direction: AxisDirection.down,
+          type: ScrollIncrementType.page,
+        ),
       },
-      error: (error, stackTrace) {
-        return ErrorWidget(error);
-      },
-      data: (data) {
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            setState(() {
-              _page = _page % 7 + 1;
-            });
+      actions: {
+        ScrollIntent: CallbackAction<ScrollIntent>(
+          onInvoke: (intent) {
+            if (state is DashboardLoadingState) return;
+            switch (intent.direction) {
+              case AxisDirection.down:
+              case AxisDirection.right:
+                ref.read(dashboardProvider.notifier).updatePage(1);
+                break;
+              case AxisDirection.up:
+              case AxisDirection.left:
+                ref.read(dashboardProvider.notifier).updatePage(-1);
+                break;
+            }
           },
-          child: FractionallySizedBox(
-            widthFactor: 1 / 2,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                StatsTable(
-                  repoStats: data,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 8,
-                    top: 32,
-                  ),
-                  child: Text(
-                    Strings.dashboardFooter(
-                      DateFormat('HH:mm, MMMM d, y')
-                          .format(data.first.metadata.timestamp),
-                    ),
-                    style: Theme.of(context).textTheme.caption,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        ),
       },
+      child: Stack(
+        children: [
+          if (data != null)
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                // todo: find a better layout approach :)
+                maxWidth: 420 + 420 * MediaQuery.textScaleFactorOf(context),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: state is DashboardLoadingState
+                          ? null
+                          : () {
+                              ref
+                                  .read(dashboardProvider.notifier)
+                                  .updatePage(1);
+                            },
+                      child: StatsTable(
+                        repoStats: data,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      top: 32,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SelectableText(
+                          Strings.dashboardFooter(
+                            DateFormat('HH:mm, MMMM d, y')
+                                .format(data.first.metadata.timestamp),
+                          ),
+                          style: Theme.of(context).textTheme.caption,
+                        ),
+                        const Link(
+                          url: Strings.dashboardFooterLink,
+                          body: Text(Strings.dashboardFooterLink),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (state is DashboardLoadingState)
+            const Positioned.fill(
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text(Strings.dashboardLoadingData),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

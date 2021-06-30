@@ -5,30 +5,60 @@ void main() {
   group('$RepoStatsSnapshot', () {
     test('fails with invalid position', () {
       expect(
-        () => RepoStatsSnapshot(position: 0, stars: 42),
+        () => RepoStatsSnapshot(
+          position: 0,
+          stars: 42,
+          positionChange: 0,
+          starsChange: 0,
+        ),
         throwsAssertionError,
       );
       expect(
-        () => RepoStatsSnapshot(position: -1, stars: 42),
+        () => RepoStatsSnapshot(
+          position: -1,
+          stars: 42,
+          positionChange: 0,
+          starsChange: 0,
+        ),
         throwsAssertionError,
       );
     });
 
     test('fails with invalid stars', () {
       expect(
-        () => RepoStatsSnapshot(position: 42, stars: -1),
+        () => RepoStatsSnapshot(
+          position: 42,
+          stars: -1,
+          positionChange: 0,
+          starsChange: 0,
+        ),
         throwsAssertionError,
       );
       expect(
-        () => RepoStatsSnapshot(position: 42, stars: -42),
+        () => RepoStatsSnapshot(
+          position: 42,
+          stars: -42,
+          positionChange: 0,
+          starsChange: 0,
+        ),
         throwsAssertionError,
       );
     });
 
     test('parses JSON correctly', () {
       expect(
-        RepoStatsSnapshot.fromJson({'position': 1, 'stars': 42}),
-        const RepoStatsSnapshot(position: 1, stars: 42),
+        RepoStatsSnapshot.fromJson({
+          'position': 1,
+          'stars': 42,
+          'positionChange': 0,
+          'starsChange': 0,
+        }),
+        const RepoStatsSnapshot(
+          position: 1,
+          stars: 42,
+          positionChange: 0,
+          starsChange: 0,
+        ),
       );
     });
   });
