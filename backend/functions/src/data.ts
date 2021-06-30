@@ -76,7 +76,7 @@ interface StatsSnapshot {
   position: number
   stars: number
   positionChange: number
-  starChange: number
+  starsChange: number
 }
 
 interface StatsData {
@@ -420,7 +420,7 @@ function computeStatsSnapshot({
     position: snapshotData.position,
     stars: snapshotData.stargazers_count,
     positionChange: snapshotData.position - latestData.position,
-    starChange: latestData.stargazers_count - snapshotData.stargazers_count,
+    starsChange: latestData.stargazers_count - snapshotData.stargazers_count,
   }
 }
 
