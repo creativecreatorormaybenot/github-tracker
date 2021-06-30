@@ -84,6 +84,8 @@ class Dashboard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   MouseRegion(
+                    // This does not update visually when mouse is not moved.
+                    // todo: create flutter/flutter issue for this.
                     cursor: state is DashboardLoadingState
                         ? SystemMouseCursors.wait
                         : SystemMouseCursors.click,
