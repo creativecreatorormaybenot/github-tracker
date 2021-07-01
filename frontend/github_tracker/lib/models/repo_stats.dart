@@ -93,7 +93,9 @@ class RepoStatsMetadata with _$RepoStatsMetadata {
   @JsonSerializable(explicitToJson: true)
   const factory RepoStatsMetadata({
     /// The repo description.
-    required String description,
+    ///
+    /// Can be `null` since the repo description is optional.
+    required String? description,
 
     /// The number of existing forks of the repository.
     @JsonKey(name: 'forks_count') required int forksCount,
