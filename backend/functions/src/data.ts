@@ -32,7 +32,7 @@ interface RepoData {
   id: number
   name: string
   full_name: string
-  description: string
+  description: string | null
   language: string | null
   html_url: string
   stargazers_count: number
@@ -248,10 +248,10 @@ export const update = functions.pubsub
         open_issues_count: repo.open_issues_count,
         forks_count: repo.forks_count,
         owner: {
-          id: repo.owner.id,
-          login: repo.owner.login,
-          html_url: repo.owner.html_url,
-          avatar_url: repo.owner.avatar_url,
+          id: repo.owner!.id,
+          login: repo.owner!.login,
+          html_url: repo.owner!.html_url,
+          avatar_url: repo.owner!.avatar_url,
         },
       }
       batch().create(dataCollection.doc(), data)
@@ -547,19 +547,21 @@ async function getTwitterTag({
   padStringMode = PadStringMode.None,
 }: TwitterTagParameters): Promise<string> {
   let twitter_username: string | null | undefined
-  if (repo.owner.type === 'User') {
+  if (repo.owner!.type === 'User') {
     const user = (
-      await octokit.users.getByUsername({ username: repo.owner.login })
+      await octokit.users.getByUsername({ username: repo.owner!.login })
     ).data
     twitter_username = user.twitter_username
   } else {
-    if (repo.owner.type !== 'Organization') {
+    if (repo.owner!.type !== 'Organization') {
       functions.logger.warn(
-        `Unknown owner type "${repo.owner.type}" for the owner of the ${repo.full_name} repo.`
+        `Unknown owner type "${repo.owner!.type}" for the owner of the ${
+          repo.full_name
+        } repo.`
       )
     }
 
-    const org = (await octokit.orgs.get({ org: repo.owner.login })).data
+    const org = (await octokit.orgs.get({ org: repo.owner!.login })).data
     twitter_username = org.twitter_username
   }
 
@@ -575,13 +577,13 @@ async function getTwitterTag({
  * @returns a string array of hashtags.
  */
 function getHashtags(repo: Repo): string[] {
-  const hashtags = [`#${repo.owner.login}`]
-  if (repo.owner.login !== repo.name) {
+  const hashtags = [`#${repo.owner!.login}`]
+  if (repo.owner!.login !== repo.name) {
     hashtags.push(`#${repo.name}`)
   }
   if (
     repo.language !== null &&
-    repo.language !== repo.owner.login &&
+    repo.language !== repo.owner!.login &&
     repo.language !== repo.name
   ) {
     hashtags.push(`#${repo.language}`)
