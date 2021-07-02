@@ -604,18 +604,28 @@ async function getTwitterTag({
  * @returns a string array of hashtags.
  */
 function getHashtags(repo: Repo): string[] {
-  const hashtags = [`#${repo.owner!.login}`]
+  const hashtags = [formatHashtag(repo.owner!.login)]
   if (repo.owner!.login !== repo.name) {
-    hashtags.push(`#${repo.name}`)
+    hashtags.push(formatHashtag(repo.name))
   }
   if (
     repo.language !== null &&
     repo.language !== repo.owner!.login &&
     repo.language !== repo.name
   ) {
-    hashtags.push(`#${repo.language}`)
+    hashtags.push(formatHashtag(repo.language))
   }
   return hashtags
+}
+
+/**
+ * Formats a given tag to work as a hashtag on Twitter.
+ * This excludes certain characters and prefixes the hash.
+ * @param tag the desired tag to be placed after the hash.
+ */
+function formatHashtag(tag: string): string {
+  const formatted = tag.replace(new RegExp('[-_.]'), '')
+  return `#${formatted}`
 }
 
 /**
