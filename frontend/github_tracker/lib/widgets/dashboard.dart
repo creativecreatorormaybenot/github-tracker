@@ -100,7 +100,8 @@ class Dashboard extends ConsumerWidget {
                             },
                       child: StatsTable(
                         repoStats: data,
-                        pageSize: ref.watch(dashboardProvider.notifier).pageSize,
+                        pageSize:
+                            ref.watch(dashboardProvider.notifier).pageSize,
                       ),
                     ),
                   ),
