@@ -197,11 +197,9 @@ export const update = functions.pubsub
       ),
       top100External = softwareRepos.slice(0, 100)
 
-    if (top100External.length !== 100) {
-      functions.logger.warn(
-        `Only ${top100External.length}/100 repos could be retrieved.`
-      )
-    }
+    // Make sure to exit early if the integrity of the retrieved data cannot be confirmed.
+    if (!checkTop100Integrity(top100External)) return
+
     // We refer to the top100 retrieved from GitHub above as "external" as
     // it uses a different data structure (interface) than the data that we
     // end up saving to our database.
@@ -408,6 +406,30 @@ export const update = functions.pubsub
     // Run all tracking operations in parallel sequentially after the data operations.
     await Promise.all(trackingPromises)
   })
+
+function checkTop100Integrity(repos: Repo[]): boolean {
+  if (repos.length !== 100) {
+    functions.logger.error(
+      `Loaded data integrity compromised as only ${repos.length} repos were loaded.`
+    )
+    return false
+  }
+  let stars = repos[0].stargazers_count
+  for (let i = 1; i < 100; i++) {
+    if (repos[i].stargazers_count <= stars) {
+      stars = repos[i].stargazers_count
+      continue
+    }
+    functions.logger.error(
+      `Integrity of loaded data is compromised as ` +
+        `${repos[i].full_name} has ${repos[i].stargazers_count} ` +
+        `while the previous repo has ${stars}, ` +
+        `i.e. the order is wrong.`
+    )
+    return false
+  }
+  return true
+}
 
 function computeStatsSnapshot({
   snapshotData,
@@ -730,9 +752,9 @@ ${current.html_url}`
       tweet.length
     }/280 characters).`
   )
-  //   await twitter.post(`statuses/update`, {
-  //     status: tweet,
-  //   })
+  await twitter.post(`statuses/update`, {
+    status: tweet,
+  })
 }
 
 /**
