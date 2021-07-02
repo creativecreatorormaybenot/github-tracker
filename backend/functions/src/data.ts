@@ -410,7 +410,8 @@ export const update = functions.pubsub
 function checkTop100Integrity(repos: Repo[]): boolean {
   if (repos.length !== 100) {
     functions.logger.error(
-      `Loaded data integrity compromised as only ${repos.length} repos were loaded.`
+      `Loaded data integrity compromised as only ` +
+        `${repos.length}/100 top 100 repos were loaded.`
     )
     return false
   }
@@ -421,9 +422,13 @@ function checkTop100Integrity(repos: Repo[]): boolean {
       continue
     }
     functions.logger.error(
-      `Integrity of loaded data is compromised as ` +
-        `${repos[i].full_name} has ${repos[i].stargazers_count} ` +
-        `while the previous repo has ${stars}, ` +
+      `Integrity of loaded top 100 data is compromised as ` +
+        `${repos[i].full_name} (position=${i + 1}) has ${
+          repos[i].stargazers_count
+        } ` +
+        `while the previous repo ${
+          repos[i - 1].full_name
+        } (position=${i}) has ${stars}, ` +
         `i.e. the order is wrong.`
     )
     return false
