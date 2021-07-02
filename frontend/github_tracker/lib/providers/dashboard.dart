@@ -19,7 +19,10 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   var _page = 0;
 
   // todo: refactor paging (this is only for developing purposes).
-  static const _resultsPerPage = 15, _totalResults = 100;
+  /// The number of results returned per page.
+  int get pageSize => _pageSize;
+
+  static const _pageSize = 15, _totalResults = 100;
 
   /// Initializes the notifier by listening to the initial page (0).
   void init() {
@@ -30,7 +33,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   /// page) and starts listening for new data.
   void updatePage(int pageChange) {
     assert(mounted);
-    _page = (_page + pageChange) % (_totalResults / _resultsPerPage).ceil();
+    _page = (_page + pageChange) % (_totalResults / pageSize).ceil();
     _updateStream();
 
     // If we are not already in a loading state, make sure to enter one.
@@ -43,8 +46,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   }
 
   void _updateStream() {
-    final stream =
-        streamRepoStats(_page * _resultsPerPage + 1, _resultsPerPage);
+    final stream = streamRepoStats(_page * pageSize + 1, pageSize);
     _streamSubscription?.cancel();
     _streamSubscription = stream.listen(
       (event) {

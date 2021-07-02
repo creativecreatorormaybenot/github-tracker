@@ -14,14 +14,26 @@ class StatsTable extends StatelessWidget {
   const StatsTable({
     Key? key,
     required this.repoStats,
+    required this.pageSize,
   }) : super(key: key);
 
   /// Data / list of repo stats that should be displayed.
   final List<RepoStats> repoStats;
 
+  /// Page size used to fill remaining cells if [repoStats] does not have enough
+  /// entries.
+  final int pageSize;
+
+  List<T> _fillRemaining<T>(T Function() builder) {
+    return [
+      for (var i = repoStats.length; i < pageSize; i++) builder(),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // todo: extract/refactor this code.
         _Column(
@@ -36,6 +48,12 @@ class StatsTable extends StatelessWidget {
                 change: stats.oneDay?.positionChange,
                 arrowPosition: StatsChangeArrowPosition.back,
               ),
+            ..._fillRemaining(
+              () => const StatsChange(
+                change: 0,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+            ),
           ],
         ),
         _Column(
@@ -50,6 +68,12 @@ class StatsTable extends StatelessWidget {
                 change: stats.sevenDay?.positionChange,
                 arrowPosition: StatsChangeArrowPosition.back,
               ),
+            ..._fillRemaining(
+              () => const StatsChange(
+                change: 0,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+            ),
           ],
         ),
         _Column(
@@ -64,6 +88,12 @@ class StatsTable extends StatelessWidget {
                 change: stats.twentyEightDay?.positionChange,
                 arrowPosition: StatsChangeArrowPosition.back,
               ),
+            ..._fillRemaining(
+              () => const StatsChange(
+                change: 0,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+            ),
           ],
         ),
         _Column(
@@ -71,6 +101,12 @@ class StatsTable extends StatelessWidget {
           header: const Text(Strings.dashboardRank),
           children: [
             for (final stats in repoStats) RepoPosition(stats: stats),
+            ..._fillRemaining(
+              () => const StatsChange(
+                change: 0,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+            ),
           ],
         ),
         Expanded(
@@ -79,6 +115,12 @@ class StatsTable extends StatelessWidget {
             header: const Text(Strings.dashboardRepo),
             children: [
               for (final stats in repoStats) RepoIdentifier(stats: stats),
+              ..._fillRemaining(
+                () => const StatsChange(
+                  change: 0,
+                  arrowPosition: StatsChangeArrowPosition.front,
+                ),
+              ),
             ],
           ),
         ),
@@ -87,6 +129,12 @@ class StatsTable extends StatelessWidget {
           header: const Text(Strings.dashboardStars),
           children: [
             for (final stats in repoStats) RepoStars(stats: stats),
+            ..._fillRemaining(
+              () => const StatsChange(
+                change: 0,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+            ),
           ],
         ),
         // todo: extract/refactor this code.
@@ -102,6 +150,12 @@ class StatsTable extends StatelessWidget {
                 change: stats.twentyEightDay?.starsChange,
                 arrowPosition: StatsChangeArrowPosition.front,
               ),
+            ..._fillRemaining(
+              () => const StatsChange(
+                change: 0,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+            ),
           ],
         ),
         _Column(
@@ -116,6 +170,12 @@ class StatsTable extends StatelessWidget {
                 change: stats.sevenDay?.starsChange,
                 arrowPosition: StatsChangeArrowPosition.front,
               ),
+            ..._fillRemaining(
+              () => const StatsChange(
+                change: 0,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+            ),
           ],
         ),
         _Column(
@@ -130,6 +190,12 @@ class StatsTable extends StatelessWidget {
                 change: stats.oneDay?.starsChange,
                 arrowPosition: StatsChangeArrowPosition.front,
               ),
+            ..._fillRemaining(
+              () => const StatsChange(
+                change: 0,
+                arrowPosition: StatsChangeArrowPosition.front,
+              ),
+            ),
           ],
         ),
       ],
