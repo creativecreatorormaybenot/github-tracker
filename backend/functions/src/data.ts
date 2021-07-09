@@ -624,7 +624,7 @@ function getHashtags(repo: Repo): string[] {
  * @param tag the desired tag to be placed after the hash.
  */
 function formatHashtag(tag: string): string {
-  const formatted = tag.replace(new RegExp('[-_.]'), '')
+  const formatted = tag.replace(new RegExp('[-_.]'), '').replace(new RegExp('\#'), 'sharp')
   return `#${formatted}`
 }
 
