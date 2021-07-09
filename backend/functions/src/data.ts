@@ -620,11 +620,14 @@ function getHashtags(repo: Repo): string[] {
 
 /**
  * Formats a given tag to work as a hashtag on Twitter.
- * This excludes certain characters and prefixes the hash.
+ * This excludes or transforms certain illegal characters
+ * and prefixes the hash.
  * @param tag the desired tag to be placed after the hash.
  */
 function formatHashtag(tag: string): string {
-  const formatted = tag.replace(new RegExp('[-_.]'), '').replace(new RegExp('\#'), 'sharp')
+  const formatted = tag
+    .replace(new RegExp('[-_.]'), '')
+    .replace(new RegExp('#'), 'sharp')
   return `#${formatted}`
 }
 
