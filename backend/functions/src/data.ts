@@ -628,6 +628,7 @@ function formatHashtag(tag: string): string {
   const formatted = tag
     .replace(new RegExp('[-_.]'), '')
     .replace(new RegExp('#'), 'sharp')
+    .replace(new RegExp('\+'), 'plus')
   return `#${formatted}`
 }
 
