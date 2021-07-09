@@ -626,9 +626,9 @@ function getHashtags(repo: Repo): string[] {
  */
 function formatHashtag(tag: string): string {
   const formatted = tag
-    .replace(/[-_.]/, '')
-    .replace(/#/, 'sharp')
-    .replace(/\+/, 'plus')
+    .replace(/[-_.]/g, '')
+    .replace(/#/g, 'sharp')
+    .replace(/\+/g, 'plus')
   return `#${formatted}`
 }
 
