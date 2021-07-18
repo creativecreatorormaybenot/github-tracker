@@ -30,7 +30,6 @@ export const contentRepos: Array<string> = [
   'h5bp/html5-boilerplate',
   'toddmotto/public-apis',
   'resume/resume.github.com',
-  'nvbn/thefuck',
   'h5bp/Front-end-Developer-Interview-Questions',
   'jlevy/the-art-of-command-line',
   'google/material-design-icons',
