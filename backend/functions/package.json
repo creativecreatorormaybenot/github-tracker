@@ -14,7 +14,7 @@
   },
   "main": "lib/index.js",
   "dependencies": {
-    "@google-cloud/secret-manager": "^3.9.0",
+    "@google-cloud/secret-manager": "^3.10.0",
     "@octokit/rest": "^18.9.1",
     "@octokit/types": "^6.25.0",
     "blurhash": "^1.1.4",
