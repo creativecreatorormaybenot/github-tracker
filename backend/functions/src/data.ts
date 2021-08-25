@@ -578,7 +578,8 @@ async function getTwitterTag({
     const user = (
       await octokit.users.getByUsername({ username: repo.owner!.login })
     ).data
-    twitter_username = user.twitter_username
+    // Type cast because of https://github.com/octokit/types.ts/issues/360.
+    twitter_username = (user.twitter_username as string | null | undefined)
   } else {
     if (repo.owner!.type !== 'Organization') {
       functions.logger.warn(
