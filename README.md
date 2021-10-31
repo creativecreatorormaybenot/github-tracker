@@ -2,6 +2,8 @@
 
 Tracking the top 100 GitHub software repos.
 
+<img width="1480" src="https://user-images.githubusercontent.com/19204050/139599401-b32e26a5-2e83-46e1-bf8f-d953a05e78ee.png">
+
 ## Web app [![GitHub Tracker web app][github tracker web app shield]][github tracker web app]
 
 The heart of GitHub Tracker is the **Flutter web app** at
