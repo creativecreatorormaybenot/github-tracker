@@ -1,5 +1,14 @@
 import * as functions from 'firebase-functions'
-import * as admin from 'firebase-admin'
+import {
+  getFirestore,
+  DocumentSnapshot,
+  Timestamp,
+  FirestoreDataConverter,
+  DocumentData,
+  QueryDocumentSnapshot,
+  CollectionReference,
+  WriteBatch,
+} from 'firebase-admin/firestore'
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
 import { Octokit } from '@octokit/rest'
 import {
@@ -12,10 +21,11 @@ import { merge } from 'lodash'
 import { contentRepos } from './content-repos'
 import { milestones } from './milestones'
 import { blurhashFromImage } from './blurhash'
+import { TweetManager, Tweet } from './tweets'
 
 // Initialize clients that can be initialized synchronously.
 const octokit = new Octokit()
-const firestore = admin.firestore()
+const firestore = getFirestore()
 const secretManager = new SecretManagerServiceClient()
 // The Twitter client is initialized asynchronously in the update function
 // in order to keep the async code in there and ensure initialization has
@@ -27,7 +37,7 @@ type Repo = GetResponseDataTypeFromEndpointMethod<
 >['items'][0]
 
 interface RepoData {
-  timestamp: admin.firestore.Timestamp
+  timestamp: Timestamp
   position: number
   id: number
   name: string
@@ -87,24 +97,19 @@ interface StatsData {
   twentyEightDay?: StatsSnapshot
 }
 
-function snapshotConverter<T>(): admin.firestore.FirestoreDataConverter<T> {
+function snapshotConverter<T>(): FirestoreDataConverter<T> {
   return {
-    toFirestore(data: T): admin.firestore.DocumentData {
+    toFirestore(data: T): DocumentData {
       return data
     },
-    fromFirestore(snapshot: admin.firestore.QueryDocumentSnapshot): T {
+    fromFirestore(snapshot: QueryDocumentSnapshot): T {
       return snapshot.data() as T
     },
   }
 }
 
-function typedCollection<T>(
-  path: string
-): admin.firestore.CollectionReference<T> {
-  return admin
-    .firestore()
-    .collection(path)
-    .withConverter(snapshotConverter<T>())
+function typedCollection<T>(path: string): CollectionReference<T> {
+  return firestore.collection(path).withConverter(snapshotConverter<T>())
 }
 
 /**
@@ -148,10 +153,12 @@ export const update = functions.pubsub
       twitter = new Twitter(config)
     }
 
+    const tweetManager = new TweetManager(twitter)
+
     // We could also use a Firestore server timestamp instead, however,
     // we want to use the local timestamp here, so that it represents the
     // precise time we made the search request.
-    const now = admin.firestore.Timestamp.now()
+    const now = Timestamp.now()
 
     // We need to make sure that we do not surpass the 500 operations write
     // limit for batch writes. This is why we create a function for dynamically
@@ -160,9 +167,9 @@ export const update = functions.pubsub
     // updates for updating the stats data. However, we cannot know how many deletes
     // we have (as the old data might be faulty). Furthermore, this approach ensures
     // that we can add batch operations later on :)
-    const batches: admin.firestore.WriteBatch[] = []
+    const batches: WriteBatch[] = []
     let opIndex = 0
-    function batch(): admin.firestore.WriteBatch {
+    function batch(): WriteBatch {
       if (opIndex % 500 === 0) {
         batches.push(firestore.batch())
       }
@@ -376,10 +383,11 @@ export const update = functions.pubsub
         top100External,
         top100Internal,
         top100SevenDay,
+        tweetManager,
       }),
       // We want to include a reference to the tweetTopRepo function to satifsy the linter.
       // And we do not want to execute it on every function call in order to prevent spam.
-      ...(false ? [trackTopRepo(top100External)] : []),
+      ...(false ? [trackTopRepo(top100External, tweetManager)] : []),
     ]
     // Add tracking operations for all of the top 100 repos individually.
     for (let i = 0; i < top100External.length; i++) {
@@ -393,11 +401,12 @@ export const update = functions.pubsub
       if (previous !== undefined) {
         trackingPromises.push(
           ...[
-            trackRepoMilestones(repo, previous),
+            trackRepoMilestones(repo, previous, tweetManager),
             trackRepoPosition({
               current,
               previous,
               top100External,
+              tweetManager,
             }),
           ]
         )
@@ -405,6 +414,9 @@ export const update = functions.pubsub
     }
     // Run all tracking operations in parallel sequentially after the data operations.
     await Promise.all(trackingPromises)
+
+    // Finally, tweet whatever tweet has the highest priority.
+    await tweetManager.tweet()
   })
 
 function checkTop100Integrity(repos: Repo[]): boolean {
@@ -459,24 +471,24 @@ function computeStatsSnapshot({
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getDaysAgoDoc<T>(
-  collection: admin.firestore.CollectionReference<T>,
-  now: admin.firestore.Timestamp,
+  collection: CollectionReference<T>,
+  now: Timestamp,
   days: number
-): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
+): Promise<DocumentSnapshot<T> | undefined> {
   const daysAgoMillis = now.toMillis() - 1000 * 60 * 60 * 24 * days
   const result = await collection
     .where(
       'timestamp',
       '>=',
       // Give five minutes of slack for potential function execution deviations.
-      admin.firestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 300)
+      Timestamp.fromMillis(daysAgoMillis - 1000 * 300)
     )
     .where(
       'timestamp',
       '<',
       // Give one hour of slack in case there was an issue with storing the data.
       // If the data is more than an hour old, we declare it as unusable.
-      admin.firestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
+      Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
     )
     .limit(1)
     .withConverter(snapshotConverter<T>())
@@ -490,8 +502,8 @@ async function getDaysAgoDoc<T>(
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getLatestDoc<T>(
-  collection: admin.firestore.CollectionReference<T>
-): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
+  collection: CollectionReference<T>
+): Promise<DocumentSnapshot<T> | undefined> {
   const result = await collection
     .orderBy('timestamp', 'desc')
     .limit(1)
@@ -507,7 +519,7 @@ async function getLatestDoc<T>(
  */
 async function batchDeleteUnusedStatsDocs(
   top100External: Repo[],
-  batch: () => admin.firestore.WriteBatch
+  batch: () => WriteBatch
 ): Promise<void> {
   const statsDocs = await typedCollection<StatsData>('stats').listDocuments()
 
@@ -579,7 +591,7 @@ async function getTwitterTag({
       await octokit.users.getByUsername({ username: repo.owner!.login })
     ).data
     // Type cast because of https://github.com/octokit/types.ts/issues/360.
-    twitter_username = (user.twitter_username as string | null | undefined)
+    twitter_username = user.twitter_username as string | null | undefined
   } else {
     if (repo.owner!.type !== 'Organization') {
       functions.logger.warn(
@@ -637,8 +649,12 @@ function formatHashtag(tag: string): string {
  * Tracks the top repository.
  * This posts a tweet about the most starred repo.
  * @param top100External the external data for the top 100 repos.
+ * @param tweetManager the tweet manager for adding tweets.
  */
-async function trackTopRepo(top100External: Repo[]): Promise<void> {
+async function trackTopRepo(
+  top100External: Repo[],
+  tweetManager: TweetManager
+): Promise<void> {
   // Tweet about top repo.
   const repo = top100External[0]
   const repoTag = getRepoTag(repo)
@@ -659,9 +675,7 @@ ${repo.html_url}`
   functions.logger.info(
     `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars (${tweet.length}/280 characters).`
   )
-  await twitter.post('statuses/update', {
-    status: tweet,
-  })
+  tweetManager.addTweet(new Tweet(tweet, 1))
 }
 
 /**
@@ -669,8 +683,13 @@ ${repo.html_url}`
  * current repo data to the previous stored data.
  * @param repo the current external repo data from GitHub.
  * @param previous the previous internal data we have stored about the repo.
+ * @param tweetManager the tweet manager for adding tweets.
  */
-async function trackRepoMilestones(repo: Repo, previous: RepoData) {
+async function trackRepoMilestones(
+  repo: Repo,
+  previous: RepoData,
+  tweetManager: TweetManager
+): Promise<void> {
   const previousStars = previous.stargazers_count
   const currentStars = repo.stargazers_count
 
@@ -701,9 +720,7 @@ ${repo.html_url}`
     functions.logger.info(
       `Tweeting about ${repoTag} reaching the ${milestone} milestone (${tweet.length}/280 characters).`
     )
-    await twitter.post('statuses/update', {
-      status: tweet,
-    })
+    tweetManager.addTweet(new Tweet(tweet, 1))
     return
   }
 }
@@ -713,16 +730,19 @@ ${repo.html_url}`
  * @param current the current internal data of the repo to track.
  * @param previous the previous internal data of the repo to track.
  * @param top100External the external data for the top 100 repos.
+ * @param tweetManager the tweet manager for adding tweets.
  */
 async function trackRepoPosition({
   current,
   previous,
   top100External,
+  tweetManager,
 }: {
   current: RepoData
   previous: RepoData
   top100External: Repo[]
-}) {
+  tweetManager: TweetManager
+}): Promise<void> {
   // There is nothing to inform about when the position has not changed.
   if (current.position === previous.position) return
   // Also, for now I feel like we should only share good news. We could of course also approach this from
@@ -772,9 +792,7 @@ ${current.html_url}`
       tweet.length
     }/280 characters).`
   )
-  await twitter.post(`statuses/update`, {
-    status: tweet,
-  })
+  tweetManager.addTweet(new Tweet(tweet, 2))
 }
 
 /**
@@ -790,17 +808,20 @@ ${current.html_url}`
  * @param top100External the external GitHub data of the top 100 repos.
  * @param top100Current the current internal data of the top 100 repos.
  * @param top100SevenDay the seven day internal data of the top 100 repos (entries might be null).
+ * @param tweetManager the tweet manager for adding tweets.
  */
 async function trackFastestGrowing({
   context,
   top100External,
   top100Internal,
   top100SevenDay,
+  tweetManager,
 }: {
   context: functions.EventContext
   top100External: Repo[]
   top100Internal: RepoData[]
   top100SevenDay: (RepoData | undefined)[]
+  tweetManager: TweetManager
 }): Promise<void> {
   const time = new Date(Date.parse(context.timestamp))
   if (
@@ -900,7 +921,5 @@ ${repo.html_url}`
   functions.logger.info(
     `Tweeting about ${repoTag} being the fastest growing repo of the past week (${tweet.length}/280 characters).`
   )
-  await twitter.post(`statuses/update`, {
-    status: tweet,
-  })
+  tweetManager.addTweet(new Tweet(tweet, 0))
 }
