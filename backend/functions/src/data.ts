@@ -415,6 +415,9 @@ export const update = functions.pubsub
     // Run all tracking operations in parallel sequentially after the data operations.
     await Promise.all(trackingPromises)
 
+    // todo(creativecreatorormaybenot): remove test call.
+    await trackTopRepo(top100External, tweetManager)
+
     // Finally, tweet whatever tweet has the highest priority.
     await tweetManager.tweet()
   })
