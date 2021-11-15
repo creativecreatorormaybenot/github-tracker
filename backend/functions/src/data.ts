@@ -1,14 +1,5 @@
 import * as functions from 'firebase-functions'
-import {
-  getFirestore,
-  DocumentSnapshot,
-  Timestamp,
-  FirestoreDataConverter,
-  DocumentData,
-  QueryDocumentSnapshot,
-  CollectionReference,
-  WriteBatch,
-} from 'firebase-admin/firestore'
+import * as admin from 'firebase-admin'
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
 import { Octokit } from '@octokit/rest'
 import {
@@ -25,7 +16,7 @@ import { TweetManager, Tweet } from './tweets'
 
 // Initialize clients that can be initialized synchronously.
 const octokit = new Octokit()
-const firestore = getFirestore()
+const firestore = admin.firestore()
 const secretManager = new SecretManagerServiceClient()
 // The Twitter client is initialized asynchronously in the update function
 // in order to keep the async code in there and ensure initialization has
@@ -37,7 +28,7 @@ type Repo = GetResponseDataTypeFromEndpointMethod<
 >['items'][0]
 
 interface RepoData {
-  timestamp: Timestamp
+  timestamp: admin.firestore.Timestamp
   position: number
   id: number
   name: string
@@ -97,18 +88,20 @@ interface StatsData {
   twentyEightDay?: StatsSnapshot
 }
 
-function snapshotConverter<T>(): FirestoreDataConverter<T> {
+function snapshotConverter<T>(): admin.firestore.FirestoreDataConverter<T> {
   return {
-    toFirestore(data: T): DocumentData {
+    toFirestore(data: T): admin.firestore.DocumentData {
       return data
     },
-    fromFirestore(snapshot: QueryDocumentSnapshot): T {
+    fromFirestore(snapshot: admin.firestore.QueryDocumentSnapshot): T {
       return snapshot.data() as T
     },
   }
 }
 
-function typedCollection<T>(path: string): CollectionReference<T> {
+function typedCollection<T>(
+  path: string
+): admin.firestore.CollectionReference<T> {
   return firestore.collection(path).withConverter(snapshotConverter<T>())
 }
 
@@ -158,7 +151,7 @@ export const update = functions.pubsub
     // We could also use a Firestore server timestamp instead, however,
     // we want to use the local timestamp here, so that it represents the
     // precise time we made the search request.
-    const now = Timestamp.now()
+    const now = admin.firestore.Timestamp.now()
 
     // We need to make sure that we do not surpass the 500 operations write
     // limit for batch writes. This is why we create a function for dynamically
@@ -167,9 +160,9 @@ export const update = functions.pubsub
     // updates for updating the stats data. However, we cannot know how many deletes
     // we have (as the old data might be faulty). Furthermore, this approach ensures
     // that we can add batch operations later on :)
-    const batches: WriteBatch[] = []
+    const batches: admin.firestore.WriteBatch[] = []
     let opIndex = 0
-    function batch(): WriteBatch {
+    function batch(): admin.firestore.WriteBatch {
       if (opIndex % 500 === 0) {
         batches.push(firestore.batch())
       }
@@ -415,9 +408,6 @@ export const update = functions.pubsub
     // Run all tracking operations in parallel sequentially after the data operations.
     await Promise.all(trackingPromises)
 
-    // todo(creativecreatorormaybenot): remove test call.
-    await trackTopRepo(top100External, tweetManager)
-
     // Finally, tweet whatever tweet has the highest priority.
     await tweetManager.tweet()
   })
@@ -474,24 +464,24 @@ function computeStatsSnapshot({
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getDaysAgoDoc<T>(
-  collection: CollectionReference<T>,
-  now: Timestamp,
+  collection: admin.firestore.CollectionReference<T>,
+  now: admin.firestore.Timestamp,
   days: number
-): Promise<DocumentSnapshot<T> | undefined> {
+): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
   const daysAgoMillis = now.toMillis() - 1000 * 60 * 60 * 24 * days
   const result = await collection
     .where(
       'timestamp',
       '>=',
       // Give five minutes of slack for potential function execution deviations.
-      Timestamp.fromMillis(daysAgoMillis - 1000 * 300)
+      admin.firestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 300)
     )
     .where(
       'timestamp',
       '<',
       // Give one hour of slack in case there was an issue with storing the data.
       // If the data is more than an hour old, we declare it as unusable.
-      Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
+      admin.firestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
     )
     .limit(1)
     .withConverter(snapshotConverter<T>())
@@ -505,8 +495,8 @@ async function getDaysAgoDoc<T>(
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getLatestDoc<T>(
-  collection: CollectionReference<T>
-): Promise<DocumentSnapshot<T> | undefined> {
+  collection: admin.firestore.CollectionReference<T>
+): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
   const result = await collection
     .orderBy('timestamp', 'desc')
     .limit(1)
@@ -522,7 +512,7 @@ async function getLatestDoc<T>(
  */
 async function batchDeleteUnusedStatsDocs(
   top100External: Repo[],
-  batch: () => WriteBatch
+  batch: () => admin.firestore.WriteBatch
 ): Promise<void> {
   const statsDocs = await typedCollection<StatsData>('stats').listDocuments()
 
