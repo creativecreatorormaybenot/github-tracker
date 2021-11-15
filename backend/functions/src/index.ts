@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase-admin/app'
+import * as admin from 'firebase-admin'
 
-initializeApp()
+admin.initializeApp()
 
 export * from './backups'
 export * from './data'
