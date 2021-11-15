@@ -99,7 +99,9 @@ function snapshotConverter<T>(): admin.firestore.FirestoreDataConverter<T> {
   }
 }
 
-function typedCollection<T>(path: string): admin.firestore.CollectionReference<T> {
+function typedCollection<T>(
+  path: string
+): admin.firestore.CollectionReference<T> {
   return firestore.collection(path).withConverter(snapshotConverter<T>())
 }
 
@@ -405,9 +407,6 @@ export const update = functions.pubsub
     }
     // Run all tracking operations in parallel sequentially after the data operations.
     await Promise.all(trackingPromises)
-
-    // todo(creativecreatorormaybenot): remove test call.
-    await trackTopRepo(top100External, tweetManager)
 
     // Finally, tweet whatever tweet has the highest priority.
     await tweetManager.tweet()
