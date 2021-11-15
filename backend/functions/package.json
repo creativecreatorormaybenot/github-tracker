@@ -1,5 +1,6 @@
 {
   "name": "functions",
+  "type": "module",
   "scripts": {
     "lint": "eslint \"src/**/*\"",
     "build": "tsc",
