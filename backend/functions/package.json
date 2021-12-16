@@ -22,7 +22,7 @@
     "firebase-functions": "^3.16.0",
     "jimp": "^0.16.1",
     "lodash": "^4.17.21",
-    "numbro": "^2.3.5",
+    "numbro": "^2.3.6",
     "twitter-lite": "^1.1.0"
   },
   "devDependencies": {
