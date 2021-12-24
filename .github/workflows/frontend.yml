@@ -15,7 +15,6 @@ jobs:
         channel:
           - 'stable'
           - 'beta'
-          - 'dev'
           - 'master'
         package:
           - 'github_tracker'
@@ -25,7 +24,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2.3.4
-      - uses: subosito/flutter-action@v1.5.1
+      - uses: subosito/flutter-action@v1.5.3
         with:
           channel: ${{ matrix.channel }}
       - name: pub get
@@ -49,7 +48,6 @@ jobs:
         channel:
           - 'stable'
           - 'beta'
-          - 'dev'
           - 'master'
         package:
           - 'github_tracker'
@@ -59,7 +57,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2.3.4
-      - uses: subosito/flutter-action@v1.5.1
+      - uses: subosito/flutter-action@v1.5.3
         with:
           channel: ${{ matrix.channel }}
       - run: flutter pub get
