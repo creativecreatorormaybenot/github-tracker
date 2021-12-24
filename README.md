@@ -46,17 +46,10 @@ in the form of a pull request, please feel free to create an issue for that as
 well. I guess I will have to figure out what contributing information
 (as in documentation) is required to make PRs on such a project.
 
-## Costs
+## Support
 
-Because of costs for backend services required to operate GitHub Tracker, I am
-**draining money** with this project, which is fine as I enjoy doing it.
-
-Essentially, I need to pay GCP bills every month.  
-This **limits** how much/often I can process data for GitHub Tracker etc. as I
-cannot burn an unlimited amount of money for this project - although I am
-willing to burn quite a bit because I _like_ the project (:
-
-I am not sure what to do about this yet. [Let me know][dm] if you have any ideas :)
+If you want to support my work on this project and alleviate some of the backend costs for running
+GitHub tracker, you can consider [becoming a sponsor][github sponsors] :)
 
 [github tracker web app]: https://ght.creativemaybeno.dev
 [github tracker web app alternative domain]: https://github-tracker.creativemaybeno.dev
@@ -66,6 +59,6 @@ I am not sure what to do about this yet. [Let me know][dm] if you have any ideas
 [creativemaybeno twitter]: https://twitter.com/creativemaybeno
 [creativemaybeno twitter shield]: https://img.shields.io/twitter/follow/creativemaybeno?label=me&style=social
 [github tracker issues]: https://github.com/creativecreatorormaybenot/github-tracker/issues
-[dm]: https://creativemaybeno.dev
 [tree frontend github tracker]: https://github.com/creativecreatorormaybenot/github-tracker/tree/main/frontend/github_tracker
 [tree backend functions]: https://github.com/creativecreatorormaybenot/github-tracker/tree/main/backend/functions
+[github sponsors]: https://github.com/sponsors/creativecreatorormaybenot
