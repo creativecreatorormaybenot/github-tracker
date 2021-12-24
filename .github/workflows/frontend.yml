@@ -15,7 +15,6 @@ jobs:
         channel:
           - 'stable'
           - 'beta'
-          - 'dev'
           - 'master'
         package:
           - 'github_tracker'
@@ -49,7 +48,6 @@ jobs:
         channel:
           - 'stable'
           - 'beta'
-          - 'dev'
           - 'master'
         package:
           - 'github_tracker'
