@@ -56,16 +56,16 @@ class Dashboard extends ConsumerWidget {
       actions: {
         ScrollIntent: CallbackAction<ScrollIntent>(
           onInvoke: (intent) {
-            if (state is DashboardLoadingState) return;
+            if (state is DashboardLoadingState) return null;
             switch (intent.direction) {
               case AxisDirection.down:
               case AxisDirection.right:
                 ref.read(dashboardProvider.notifier).updatePage(1);
-                break;
+                return null;
               case AxisDirection.up:
               case AxisDirection.left:
                 ref.read(dashboardProvider.notifier).updatePage(-1);
-                break;
+                return null;
             }
           },
         ),
