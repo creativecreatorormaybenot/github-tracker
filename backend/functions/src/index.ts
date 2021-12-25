@@ -4,3 +4,4 @@ admin.initializeApp()
 
 export * from './backups'
 export * from './data'
+export * from './extract'
