@@ -217,7 +217,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
-        bottom: 32,
+        bottom: 16,
       ),
       child: Text(
         Strings.dashboardTableTitle,
