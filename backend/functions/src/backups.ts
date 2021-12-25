@@ -10,7 +10,7 @@ const collections = ['data']
 
 export const backup = functions.pubsub
   // Backs up the whole Firestore database (repos collection) once per week.
-  .schedule('0 0 * * *')
+  .schedule('0 0 * * 0')
   .onRun(async () => {
     const projectId =
       process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT
