@@ -12,7 +12,7 @@ export const freeze = functions.pubsub
   // We do this in order to reduce the cost of backing up the Firestore
   // data every week. This is also why this operation happens shortly
   // after the weekly Firestore backup operation.
-  .schedule('20 4 * * 0')
+  .schedule('20 4 * * *')
   .onRun(async () => {
     const snapshot = await firestore
       .collectionGroup('data')
@@ -23,9 +23,12 @@ export const freeze = functions.pubsub
           new Date(Date.now() - 1000 * 60 * 60 * 24 * 28)
         )
       )
-      // Limit to 100000 documents to avoid exceeding the memory limit (256 MB).
-      // One document seems to be about 1 KB in the data collection.
-      .limit(1e5)
+      // Limit to 50k documents to avoid exceeding the memory limit (256 MB).
+      // One document seems to be about 1 KB in the data collection. The fetched
+      // JavaScript objects will obviously be larger than that.
+      // This function runs once a day and we create 9,600 documents per day, which
+      // means that this limit should always be fine.
+      .limit(5e4)
       .get()
 
     // Store the data in a JSON file.
