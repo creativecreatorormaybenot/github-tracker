@@ -23,6 +23,9 @@ export const freeze = functions.pubsub
           new Date(Date.now() - 1000 * 60 * 60 * 24 * 28)
         )
       )
+      // Limit to 100000 documents to avoid exceeding the memory limit (256 MB).
+      // One document seems to be about 1 KB in the data collection.
+      .limit(1e5)
       .get()
 
     // Store the data in a JSON file.
