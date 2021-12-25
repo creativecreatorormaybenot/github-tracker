@@ -32,173 +32,197 @@ class StatsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // todo: extract/refactor this code.
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Tooltip(
-            message: Strings.dashboardOneDayTooltip,
-            child: Text(Strings.dashboardOneDay),
-          ),
+        const _Header(),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.oneDay?.positionChange,
-                arrowPosition: StatsChangeArrowPosition.back,
+            // todo: extract/refactor this code.
+            _Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              header: const Tooltip(
+                message: Strings.dashboardOneDayTooltip,
+                child: Text(Strings.dashboardOneDay),
               ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
-        ),
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Tooltip(
-            message: Strings.dashboardSevenDayTooltip,
-            child: Text(Strings.dashboardSevenDay),
-          ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.sevenDay?.positionChange,
-                arrowPosition: StatsChangeArrowPosition.back,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
-        ),
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Tooltip(
-            message: Strings.dashboardTwentyEightDayTooltip,
-            child: Text(Strings.dashboardTwentyEightDay),
-          ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.twentyEightDay?.positionChange,
-                arrowPosition: StatsChangeArrowPosition.back,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
-        ),
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Text(Strings.dashboardRank),
-          children: [
-            for (final stats in repoStats) RepoPosition(stats: stats),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
-        ),
-        Expanded(
-          child: _Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            header: const Text(Strings.dashboardRepo),
-            children: [
-              for (final stats in repoStats) RepoIdentifier(stats: stats),
-              ..._fillRemaining(
-                () => const StatsChange(
-                  change: 0,
-                  arrowPosition: StatsChangeArrowPosition.front,
+              children: [
+                for (final stats in repoStats)
+                  StatsChange(
+                    change: stats.oneDay?.positionChange,
+                    arrowPosition: StatsChangeArrowPosition.back,
+                  ),
+                ..._fillRemaining(
+                  () => const StatsChange(
+                    change: 0,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
                 ),
+              ],
+            ),
+            _Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              header: const Tooltip(
+                message: Strings.dashboardSevenDayTooltip,
+                child: Text(Strings.dashboardSevenDay),
               ),
-            ],
-          ),
-        ),
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Text(Strings.dashboardStars),
-          children: [
-            for (final stats in repoStats) RepoStars(stats: stats),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
+              children: [
+                for (final stats in repoStats)
+                  StatsChange(
+                    change: stats.sevenDay?.positionChange,
+                    arrowPosition: StatsChangeArrowPosition.back,
+                  ),
+                ..._fillRemaining(
+                  () => const StatsChange(
+                    change: 0,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ),
+              ],
+            ),
+            _Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              header: const Tooltip(
+                message: Strings.dashboardTwentyEightDayTooltip,
+                child: Text(Strings.dashboardTwentyEightDay),
+              ),
+              children: [
+                for (final stats in repoStats)
+                  StatsChange(
+                    change: stats.twentyEightDay?.positionChange,
+                    arrowPosition: StatsChangeArrowPosition.back,
+                  ),
+                ..._fillRemaining(
+                  () => const StatsChange(
+                    change: 0,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ),
+              ],
+            ),
+            _Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              header: const Text(Strings.dashboardRank),
+              children: [
+                for (final stats in repoStats) RepoPosition(stats: stats),
+                ..._fillRemaining(
+                  () => const StatsChange(
+                    change: 0,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ),
+              ],
+            ),
+            Expanded(
+              child: _Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                header: const Text(Strings.dashboardRepo),
+                children: [
+                  for (final stats in repoStats) RepoIdentifier(stats: stats),
+                  ..._fillRemaining(
+                    () => const StatsChange(
+                      change: 0,
+                      arrowPosition: StatsChangeArrowPosition.front,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        // todo: extract/refactor this code.
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          header: const Tooltip(
-            message: Strings.dashboardTwentyEightDayTooltip,
-            child: Text(Strings.dashboardTwentyEightDay),
-          ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.twentyEightDay?.starsChange,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
+            _Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              header: const Text(Strings.dashboardStars),
+              children: [
+                for (final stats in repoStats) RepoStars(stats: stats),
+                ..._fillRemaining(
+                  () => const StatsChange(
+                    change: 0,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          header: const Tooltip(
-            message: Strings.dashboardSevenDayTooltip,
-            child: Text(Strings.dashboardSevenDay),
-          ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.sevenDay?.starsChange,
-                arrowPosition: StatsChangeArrowPosition.front,
+            // todo: extract/refactor this code.
+            _Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              header: const Tooltip(
+                message: Strings.dashboardTwentyEightDayTooltip,
+                child: Text(Strings.dashboardTwentyEightDay),
               ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
+              children: [
+                for (final stats in repoStats)
+                  StatsChange(
+                    change: stats.twentyEightDay?.starsChange,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ..._fillRemaining(
+                  () => const StatsChange(
+                    change: 0,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          header: const Tooltip(
-            message: Strings.dashboardOneDayTooltip,
-            child: Text(Strings.dashboardOneDay),
-          ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.oneDay?.starsChange,
-                arrowPosition: StatsChangeArrowPosition.front,
+            _Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              header: const Tooltip(
+                message: Strings.dashboardSevenDayTooltip,
+                child: Text(Strings.dashboardSevenDay),
               ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
+              children: [
+                for (final stats in repoStats)
+                  StatsChange(
+                    change: stats.sevenDay?.starsChange,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ..._fillRemaining(
+                  () => const StatsChange(
+                    change: 0,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ),
+              ],
+            ),
+            _Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              header: const Tooltip(
+                message: Strings.dashboardOneDayTooltip,
+                child: Text(Strings.dashboardOneDay),
               ),
+              children: [
+                for (final stats in repoStats)
+                  StatsChange(
+                    change: stats.oneDay?.starsChange,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ..._fillRemaining(
+                  () => const StatsChange(
+                    change: 0,
+                    arrowPosition: StatsChangeArrowPosition.front,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        bottom: 32,
+      ),
+      child: Text(
+        Strings.dashboardTableTitle,
+        style: Theme.of(context).textTheme.headline4,
+      ),
     );
   }
 }

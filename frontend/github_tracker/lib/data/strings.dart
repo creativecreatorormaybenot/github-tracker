@@ -15,6 +15,9 @@ class Strings {
 
   // -------------------------------- Dashboard --------------------------------
 
+  /// Title for the table on the dashboard.
+  static const dashboardTableTitle = 'Top Software Repos on GitHub';
+
   /// Header for the rank column on the dashboard.
   static const dashboardRank = 'Rank';
 

@@ -25,21 +25,10 @@ class App extends StatelessWidget {
           primarySwatch: Colors.grey,
         ),
         themeMode: ThemeMode.system,
-        home: const Banner(
-          message: Strings.appBannerMessage,
-          location: BannerLocation.topStart,
-          textStyle: TextStyle(
-            color: Color(0xFFFFFFFF),
-            fontSize: 9,
-            fontWeight: FontWeight.w900,
-            height: 1,
-            letterSpacing: -1 / 4,
-          ),
-          child: Scaffold(
-            body: AuthBarrier(
-              child: Center(
-                child: Dashboard(),
-              ),
+        home: const Scaffold(
+          body: AuthBarrier(
+            child: Center(
+              child: Dashboard(),
             ),
           ),
         ),
