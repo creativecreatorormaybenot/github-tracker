@@ -9,9 +9,9 @@ const bucket = 'gs://github-tracker-backups'
 const collections = ['data']
 
 export const backup = functions.pubsub
-  // Backs up the whole database (repos collection) once per week.
+  // Backs up the whole Firestore database (repos collection) once per week.
   .schedule('0 0 * * 0')
-  .onRun(async (context) => {
+  .onRun(async () => {
     const projectId =
       process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT
     const databaseName = client.databasePath(
