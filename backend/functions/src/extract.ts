@@ -54,7 +54,13 @@ export const freeze = functions.pubsub
     const file = storage
       .bucket(bucket)
       .file(
-        `from${earliestTime.toMillis()}to${lastTime.toMillis()}at${Date.now()}.json`
+        `${earliestTime.toMillis()}-${lastTime.toMillis()}@${Date.now()}.json`
       )
     await file.save(json)
+
+    // Once saving of the document data has succeeded, we can delete the redundant documents.
+    await Promise.all([
+      // We delete the documents individually in order to avoid batch limits.
+      ...snapshot.docs.map((doc) => doc.ref.delete()),
+    ])
   })
