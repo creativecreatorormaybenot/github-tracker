@@ -58,7 +58,9 @@ export const freeze = functions.pubsub
       )
     await file.save(json)
     functions.logger.info(
-      `Extracted ${snapshot.docs.length} documents (from ${earliestTime} to ${lastTime}).`
+      `Extracted ${
+        snapshot.docs.length
+      } documents (from ${earliestTime.toDate()} to ${lastTime.toDate()}).`
     )
 
     const batches: Array<admin.firestore.WriteBatch> = []
