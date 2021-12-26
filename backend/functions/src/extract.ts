@@ -57,10 +57,14 @@ export const freeze = functions.pubsub
         `${earliestTime.toMillis()}-${lastTime.toMillis()}@${Date.now()}.json`
       )
     await file.save(json)
+    functions.logger.info(
+      `Extracted ${snapshot.docs.length} documents (from ${earliestTime} to ${lastTime}).`
+    )
 
     // Once saving of the document data has succeeded, we can delete the redundant documents.
     await Promise.all([
       // We delete the documents individually in order to avoid batch limits.
       ...snapshot.docs.map((doc) => doc.ref.delete()),
     ])
+    functions.logger.info('Successfully deleted all documents from Firestore.')
   })
