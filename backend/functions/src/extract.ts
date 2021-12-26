@@ -61,10 +61,18 @@ export const freeze = functions.pubsub
       `Extracted ${snapshot.docs.length} documents (from ${earliestTime} to ${lastTime}).`
     )
 
+    const batches: Array<admin.firestore.WriteBatch> = []
+    let i = 0
+    for (const doc of snapshot.docs) {
+      if (i % 500 === 0) {
+        // Delete the documents in batches of 500 (as this is the transaction write limit).
+        batches.push(firestore.batch())
+      }
+      batches[batches.length - 1].delete(doc.ref)
+      i++
+    }
+
     // Once saving of the document data has succeeded, we can delete the redundant documents.
-    await Promise.all([
-      // We delete the documents individually in order to avoid batch limits.
-      ...snapshot.docs.map((doc) => doc.ref.delete()),
-    ])
+    await Promise.all([...batches.map((batch) => batch.commit())])
     functions.logger.info('Successfully deleted all documents from Firestore.')
   })
