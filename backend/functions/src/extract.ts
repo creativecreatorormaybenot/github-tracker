@@ -31,8 +31,30 @@ export const freeze = functions.pubsub
       .limit(1e4)
       .get()
 
+    // The documents are sorted by timestamp in ascending order.
+    const lastTime = snapshot.docs[snapshot.docs.length - 1].data()
+      .timestamp as admin.firestore.Timestamp
+    const earliestTime = snapshot.docs[0].data()
+      .timestamp as admin.firestore.Timestamp
+
+    // Make sure to map the data by repo ID, so that we can access it properly later.
+    const data: {
+      [key: string]: any
+    } = {}
+    for (const doc of snapshot.docs) {
+      const repoId = doc.ref.parent.parent!.id
+      if (!data[repoId]) {
+        data[repoId] = []
+      }
+      data[repoId].push(doc.data())
+    }
+
     // Store the data in a JSON file.
-    const json = JSON.stringify(snapshot.docs.map((doc) => doc.data()))
-    const file = storage.bucket(bucket).file(`${Date.now()}.json`)
+    const json = JSON.stringify(data)
+    const file = storage
+      .bucket(bucket)
+      .file(
+        `from${earliestTime.toMillis()}to${lastTime.toMillis()}at${Date.now()}.json`
+      )
     await file.save(json)
   })
