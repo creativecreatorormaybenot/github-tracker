@@ -21,7 +21,7 @@ jobs:
           lfs: 'true'
       - uses: subosito/flutter-action@v1.5.3
         with:
-          channel: 'beta'
+          channel: 'stable'
       - name: Build web app
         run: |
           cd frontend/github_tracker
