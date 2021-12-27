@@ -30,6 +30,10 @@ export const freeze = functions.pubsub
       // hours, which means that this limit should always be fine.
       .limit(1e4)
       .get()
+    if (snapshot.docs.length === 0) {
+      functions.logger.info('No old data to extract.')
+      return
+    }
 
     // The documents are sorted by timestamp in ascending order.
     const lastTime = snapshot.docs[snapshot.docs.length - 1].data()
