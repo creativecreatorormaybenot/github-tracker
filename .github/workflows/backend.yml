@@ -34,7 +34,7 @@ jobs:
     strategy:
       matrix:
         package:
-          # - 'rules'
+          - 'rules'
       fail-fast: false
     env:
       working-directory: 'backend/${{ matrix.package }}'
