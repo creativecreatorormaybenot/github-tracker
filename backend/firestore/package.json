@@ -2,11 +2,19 @@
   "name": "firestore",
   "version": "1.0.0",
   "scripts": {
+    "lint": "eslint \"src/**/*\"",
+    "build": "tsc",
     "test": "firebase emulators:exec --only firestore \"jest\""
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.8.1",
+    "@typescript-eslint/parser": "^5.8.1",
+    "eslint": "^8.5.0",
+    "eslint-plugin-import": "^2.25.3",
     "@firebase/rules-unit-testing": "^2.0.1",
     "firebase": "^9.1.0",
-    "jest": "^27.4.0"
+    "jest": "^27.4.0",
+    "ts-jest": "^27.1.2",
+    "typescript": "^4.5.4"
   }
 }
