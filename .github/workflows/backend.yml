@@ -6,10 +6,42 @@ on:
       - main
 
 jobs:
-  noop:
-    timeout-minutes: 1
+  lint:
+    timeout-minutes: 2
     runs-on: ubuntu-latest
-    name: noop
+    name: ${{ matrix.package }} linting
+    strategy:
+      matrix:
+        package:
+          - 'functions'
+          # - 'rules'
+        fail-fast: false
+    env:
+      working-directory: 'backend/${{ matrix.functions }}'
 
     steps:
       - uses: actions/checkout@v2.3.4
+      - run: npm install
+        working-directory: ${{ env.working-directory }}
+      - run: npm run lint
+        working-directory: ${{ env.working-directory }}
+
+  test:
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    name: ${{ matrix.package }} testing
+    strategy:
+      matrix:
+        package:
+          - 'functions'
+          # - 'rules'
+        fail-fast: false
+    env:
+      working-directory: 'backend/${{ matrix.functions }}'
+
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - run: npm install
+        working-directory: ${{ env.working-directory }}
+      - run: npm test
+        working-directory: ${{ env.working-directory }}
