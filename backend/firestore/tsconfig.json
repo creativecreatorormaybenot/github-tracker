@@ -3,12 +3,10 @@
     "module": "commonjs",
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "outDir": "out",
     "sourceMap": true,
     "strict": true,
     "target": "es2020",
     "esModuleInterop": true
   },
-  "compileOnSave": true,
-  "include": []
+  "compileOnSave": true
 }

@@ -12,6 +12,9 @@ import {
   setDoc,
   serverTimestamp,
   setLogLevel,
+  getDocs,
+  collection,
+  deleteDoc,
 } from 'firebase/firestore'
 
 let testEnv: testing.RulesTestEnvironment
@@ -26,7 +29,7 @@ beforeAll(async () => {
   })
 })
 
-after(async () => {
+afterAll(async () => {
   // Delete all the FirebaseApp instances created during testing.
   // Note: this does not affect or clear any data.
   await testEnv.cleanup()
@@ -35,7 +38,7 @@ after(async () => {
   const coverageFile = 'firestore-coverage.html'
   const fstream = createWriteStream(coverageFile)
   await new Promise((resolve, reject) => {
-    const { host, port } = testEnv.emulators.firestore
+    const { host, port } = testEnv.emulators.firestore!
     const quotedHost = host.includes(':') ? `[${host}]` : host
     http.get(
       `http://${quotedHost}:${port}/emulator/v1/projects/${testEnv.projectId}:ruleCoverage.html`,
@@ -55,63 +58,60 @@ beforeEach(async () => {
   await testEnv.clearFirestore()
 })
 
-// If you want to define global variables for Rules Test Contexts to save some
-// typing, make sure to initialize them for *every test* to avoid cache issues.
-//
-//     let unauthedDb;
-//     beforeEach(() => {
-//       unauthedDb = testEnv.unauthenticatedContext().database();
-//     });
-//
-// Or you can just create them inline to make tests self-contained like below.
-
-describe('Public user profiles', () => {
-  it('should let anyone read any profile', async function () {
+describe('public stats', () => {
+  beforeEach(async () => {
     // Setup: Create documents in DB for testing (bypassing Security Rules).
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await setDoc(doc(context.firestore(), 'users/foobar'), { foo: 'bar' })
+      await setDoc(doc(context.firestore(), 'stats/foo'), {
+        latest: { position: 1 },
+      })
+      await setDoc(doc(context.firestore(), 'stats/bar'), {
+        latest: { position: 2 },
+      })
     })
+  })
 
+  it('should let anyone list', async function () {
     const unauthedDb = testEnv.unauthenticatedContext().firestore()
+    const authedDb = testEnv.authenticatedContext('alice').firestore()
 
-    // Then test security rules by trying to read it using the client SDK.
-    await assertSucceeds(getDoc(doc(unauthedDb, 'users/foobar')))
+    await assertFails(getDocs(collection(unauthedDb, 'stats')))
+    await assertSucceeds(getDocs(collection(authedDb, 'stats')))
   })
 
-  it('should not allow users to read from a random collection', async () => {
-    unauthedDb = testEnv.unauthenticatedContext().firestore()
+  it('should not allow anyone to get', async () => {
+    const unauthedDb = testEnv.unauthenticatedContext().firestore()
+    const authedDb = testEnv.authenticatedContext('peter').firestore()
 
-    await assertFails(getDoc(doc(unauthedDb, 'foo/bar')))
+    await assertFails(getDoc(doc(unauthedDb, 'stats/foo')))
+    await assertFails(getDoc(doc(authedDb, 'stats/foo')))
   })
 
-  it('should allow ONLY signed in users to create their own profile with required `createdAt` field', async () => {
-    const aliceDb = testEnv.authenticatedContext('alice').firestore()
+  it('should not allow anyone to write', async () => {
+    const authedDb = testEnv.authenticatedContext('alice').firestore()
 
-    await assertSucceeds(
-      setDoc(doc(aliceDb, 'users/alice'), {
-        birthday: 'January 1',
-        createdAt: serverTimestamp(),
-      })
-    )
-
-    // Signed in user with required fields for others' profile
+    // Update is disallowed.
     await assertFails(
-      setDoc(doc(aliceDb, 'users/bob'), {
-        birthday: 'January 1',
-        createdAt: serverTimestamp(),
+      setDoc(doc(authedDb, 'stats/foo'), {
+        metadata: {
+          description: 'Forty-two',
+        },
       })
     )
 
-    // Signed in user without required fields
+    // Creation is disallowed.
     await assertFails(
-      setDoc(doc(aliceDb, 'users/alice'), {
-        birthday: 'January 1',
+      setDoc(doc(authedDb, 'stats/baz'), {
+        position: 3,
       })
     )
+
+    // Deletion is disallowed.
+    await assertFails(deleteDoc(doc(authedDb, 'stats/bar')))
   })
 })
 
-describe('Chat rooms', () => {
+describe('private data', () => {
   it('should ONLY allow users to create a room they own', async function () {
     const aliceDb = testEnv.authenticatedContext('alice').firestore()
 
