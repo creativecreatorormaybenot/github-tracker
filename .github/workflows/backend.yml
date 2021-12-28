@@ -27,13 +27,13 @@ jobs:
         working-directory: ${{ env.working-directory }}
 
   test:
+    skip: true
     timeout-minutes: 3
     runs-on: ubuntu-latest
     name: ${{ matrix.package }} testing
     strategy:
       matrix:
         package:
-          - 'functions'
           # - 'rules'
       fail-fast: false
     env:
