@@ -17,7 +17,7 @@ jobs:
           # - 'rules'
       fail-fast: false
     env:
-      working-directory: 'backend/${{ matrix.functions }}'
+      working-directory: 'backend/${{ matrix.package }}'
 
     steps:
       - uses: actions/checkout@v2.3.4
@@ -37,7 +37,7 @@ jobs:
           # - 'rules'
       fail-fast: false
     env:
-      working-directory: 'backend/${{ matrix.functions }}'
+      working-directory: 'backend/${{ matrix.package }}'
 
     steps:
       - uses: actions/checkout@v2.3.4
