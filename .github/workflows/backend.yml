@@ -27,7 +27,7 @@ jobs:
         working-directory: ${{ env.working-directory }}
 
   test:
-    skip: true
+    if: false
     timeout-minutes: 3
     runs-on: ubuntu-latest
     name: ${{ matrix.package }} testing
