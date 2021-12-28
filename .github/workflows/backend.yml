@@ -15,7 +15,7 @@ jobs:
         package:
           - 'functions'
           # - 'rules'
-        fail-fast: false
+      fail-fast: false
     env:
       working-directory: 'backend/${{ matrix.functions }}'
 
@@ -35,7 +35,7 @@ jobs:
         package:
           - 'functions'
           # - 'rules'
-        fail-fast: false
+      fail-fast: false
     env:
       working-directory: 'backend/${{ matrix.functions }}'
 
