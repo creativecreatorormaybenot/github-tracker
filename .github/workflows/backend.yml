@@ -14,7 +14,7 @@ jobs:
       matrix:
         package:
           - 'functions'
-          # - 'rules'
+          - 'rules'
       fail-fast: false
     env:
       working-directory: 'backend/${{ matrix.package }}'
@@ -27,7 +27,6 @@ jobs:
         working-directory: ${{ env.working-directory }}
 
   test:
-    if: false
     timeout-minutes: 3
     runs-on: ubuntu-latest
     name: ${{ matrix.package }} testing
