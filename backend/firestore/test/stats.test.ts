@@ -10,7 +10,6 @@ import {
   doc,
   getDoc,
   setDoc,
-  serverTimestamp,
   setLogLevel,
   getDocs,
   collection,
@@ -62,10 +61,11 @@ describe('public stats', () => {
   beforeEach(async () => {
     // Setup: Create documents in DB for testing (bypassing Security Rules).
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await setDoc(doc(context.firestore(), 'stats/foo'), {
+      const firestore = context.firestore()
+      await setDoc(doc(firestore, 'stats/foo'), {
         latest: { position: 1 },
       })
-      await setDoc(doc(context.firestore(), 'stats/bar'), {
+      await setDoc(doc(firestore, 'stats/bar'), {
         latest: { position: 2 },
       })
     })
@@ -112,35 +112,30 @@ describe('public stats', () => {
 })
 
 describe('private data', () => {
-  it('should ONLY allow users to create a room they own', async function () {
-    const aliceDb = testEnv.authenticatedContext('alice').firestore()
+  it('should not allow reading repo data', async function () {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), 'repos/foo/data/02FnlKdHWUGsIbNGvcCh'),
+        {
+          id: 'foo',
+        }
+      )
+    })
 
-    await assertSucceeds(
-      setDoc(doc(aliceDb, 'rooms/snow'), {
-        owner: 'alice',
-        topic: 'All Things Snowboarding',
-      })
-    )
-  })
-
-  it('should not allow room creation by a non-owner', async function () {
-    const aliceDb = testEnv.authenticatedContext('alice').firestore()
+    const authedDb = testEnv.authenticatedContext('forty-two').firestore()
 
     await assertFails(
-      setDoc(doc(aliceDb, 'rooms/boards'), {
-        owner: 'bob',
-        topic: 'All Things Snowboarding',
-      })
+      getDoc(doc(authedDb, 'repos/foo/data/02FnlKdHWUGsIbNGvcCh'))
     )
+    await assertFails(getDocs(collection(authedDb, 'repos/foo/data')))
   })
 
-  it('should not allow an update that changes the room owner', async function () {
-    const aliceDb = testEnv.authenticatedContext('alice').firestore()
+  it('should not allow creation of repo data', async function () {
+    const authedDb = testEnv.authenticatedContext('forty-two').firestore()
 
     await assertFails(
-      setDoc(doc(aliceDb, 'rooms/snow'), {
-        owner: 'bob',
-        topic: 'All Things Snowboarding',
+      setDoc(doc(authedDb, 'repos/foo/data/0FI0cJQUkFqYn9zYYnxY'), {
+        name: 'terminal',
       })
     )
   })
