@@ -1,5 +1,3 @@
-import 'package:github_tracker/widgets/twitter_follow_button.dart';
-
 /// Placeholder (namespace) for all string resources.
 ///
 /// This serves the purpose of collecting all strings used in the UI

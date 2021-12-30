@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:github_tracker/data/icons.dart';
-import 'package:github_tracker/data/strings.dart';
 import 'package:github_tracker/widgets/twitter_follow_button.dart';
 import 'package:url_launcher/link.dart';
 
