@@ -28,42 +28,42 @@ class App extends StatelessWidget {
         ),
         themeMode: ThemeMode.system,
         home: Scaffold(
-          body: AuthBarrier(
-            child: Stack(
-              children: [
-                const Center(
+          body: Stack(
+            children: [
+              const AuthBarrier(
+                child: Center(
                   child: Dashboard(),
                 ),
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Padding(
-                        padding: EdgeInsets.only(
-                          bottom: 8,
-                        ),
-                        child: TwitterFollowButton(
-                          username: 'github_tracker',
-                        ),
+              ),
+              Positioned(
+                bottom: 16,
+                left: 16,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: 8,
                       ),
-                      TwitterFollowButton(
-                        username: 'creativemaybeno',
+                      child: TwitterFollowButton(
+                        username: 'github_tracker',
                       ),
-                    ],
-                  ),
+                    ),
+                    TwitterFollowButton(
+                      username: 'creativemaybeno',
+                    ),
+                  ],
                 ),
-                const Positioned(
-                  top: 16,
-                  left: 16,
-                  child: GitHubRepoButton(
-                    fullName: 'creativecreatorormaybenot/github-tracker',
-                  ),
+              ),
+              const Positioned(
+                top: 16,
+                left: 16,
+                child: GitHubRepoButton(
+                  fullName: 'creativecreatorormaybenot/github-tracker',
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
