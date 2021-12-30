@@ -42,7 +42,7 @@ class _AnimatedStatsTableState extends State<AnimatedStatsTable>
   late final _controller = AnimationController(
     vsync: this,
     value: 1,
-    duration: const Duration(seconds: 3),
+    duration: const Duration(seconds: 1),
   );
   late final _curvedAnimation = CurvedAnimation(
     parent: _controller,
