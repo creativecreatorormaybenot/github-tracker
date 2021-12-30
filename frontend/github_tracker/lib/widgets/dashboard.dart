@@ -73,62 +73,72 @@ class Dashboard extends ConsumerWidget {
       child: Stack(
         children: [
           if (data != null)
-            Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  // todo: find a better layout approach :)
-                  maxWidth: 420 + 420 * MediaQuery.textScaleFactorOf(context),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _TableHeader(),
-                    MouseRegion(
-                      cursor: state is DashboardLoadingState
-                          ? SystemMouseCursors.wait
-                          : SystemMouseCursors.click,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: state is DashboardLoadingState
-                            ? null
-                            : () {
-                                ref
-                                    .read(dashboardProvider.notifier)
-                                    .updatePage(1);
-                              },
-                        child: StatsTable(
-                          repoStats: data,
-                          pageSize:
-                              ref.watch(dashboardProvider.notifier).pageSize,
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                // todo: find a better layout approach :)
+                maxWidth: 420 + 420 * MediaQuery.textScaleFactorOf(context),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _TableHeader(),
+                  Stack(
+                    children: [
+                      MouseRegion(
+                        cursor: state is DashboardLoadingState
+                            ? SystemMouseCursors.wait
+                            : SystemMouseCursors.click,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            ref.read(dashboardProvider.notifier).updatePage(1);
+                          },
+                          child: StatsTable(
+                            repoStats: data,
+                            pageSize:
+                                ref.watch(dashboardProvider.notifier).pageSize,
+                          ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 8,
-                        top: 32,
+                      _ArrowButton(
+                        top: true,
+                        onTap: () {
+                          ref.read(dashboardProvider.notifier).updatePage(-1);
+                        },
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SelectableText(
-                            Strings.dashboardFooter(
-                              DateFormat('HH:mm, MMMM d, y')
-                                  .format(data.first.metadata.timestamp),
-                            ),
-                            style: Theme.of(context).textTheme.caption,
-                          ),
-                          const Link(
-                            url: Strings.dashboardFooterLink,
-                            body: Text(Strings.dashboardFooterLink),
-                          ),
-                        ],
+                      _ArrowButton(
+                        top: false,
+                        onTap: () {
+                          ref.read(dashboardProvider.notifier).updatePage(1);
+                        },
                       ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      top: 32,
                     ),
-                  ],
-                ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SelectableText(
+                          Strings.dashboardFooter(
+                            DateFormat('HH:mm, MMMM d, y')
+                                .format(data.first.metadata.timestamp),
+                          ),
+                          style: Theme.of(context).textTheme.caption,
+                        ),
+                        const Link(
+                          url: Strings.dashboardFooterLink,
+                          body: Text(Strings.dashboardFooterLink),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           if (state is DashboardLoadingState)
@@ -160,6 +170,36 @@ class _TableHeader extends StatelessWidget {
       child: Text(
         Strings.dashboardTableTitle,
         style: Theme.of(context).textTheme.headline4,
+      ),
+    );
+  }
+}
+
+class _ArrowButton extends StatelessWidget {
+  const _ArrowButton({
+    Key? key,
+    required this.top,
+    required this.onTap,
+  }) : super(key: key);
+
+  final bool top;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: top ? null : 0,
+      top: top ? 0 : null,
+      left: 0,
+      right: 0,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: top
+              ? const Icon(Icons.keyboard_arrow_up_outlined)
+              : const Icon(Icons.keyboard_arrow_down_outlined),
+        ),
       ),
     );
   }
