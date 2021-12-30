@@ -26,7 +26,7 @@ about trackable stats (e.g. milestones, one repo surpassing another, fastest
 growing repos, etc.) automatically. All tweets are posted via
 [@github_tracker][github tracker twitter].
 
-todo: insert tweet screenshot here (link to user)
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">*vercel/next.js* just surpassed *laravel/laravel* in stars on <a href="https://twitter.com/hashtag/GitHub?src=hash&amp;ref_src=twsrc%5Etfw">#GitHub</a> 💥<br><br>It is now the #31 most starred software repo with 64.3k 🌟<a href="https://twitter.com/hashtag/vercel?src=hash&amp;ref_src=twsrc%5Etfw">#vercel</a> <a href="https://twitter.com/hashtag/next?src=hash&amp;ref_src=twsrc%5Etfw">#next</a>.js <a href="https://twitter.com/hashtag/JavaScript?src=hash&amp;ref_src=twsrc%5Etfw">#JavaScript</a> <a href="https://twitter.com/hashtag/laravel?src=hash&amp;ref_src=twsrc%5Etfw">#laravel</a> <a href="https://twitter.com/hashtag/PHP?src=hash&amp;ref_src=twsrc%5Etfw">#PHP</a><a href="https://t.co/ZElZZR9MqP">https://t.co/ZElZZR9MqP</a></p>&mdash; GitHub Tracker (@github_tracker) <a href="https://twitter.com/github_tracker/status/1371272507827847172?ref_src=twsrc%5Etfw">March 15, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 This is currently part of the backend and does not yet have its own place. It
 can be found in [`backend/functions`][tree backend functions].
