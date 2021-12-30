@@ -2,8 +2,6 @@
 
 Tracking the top 100 GitHub software repos.
 
-![image](https://user-images.githubusercontent.com/19204050/147398194-cc98c935-e537-4278-9654-3800ed827a0a.png)
-
 ## Web app [![GitHub Tracker web app][github tracker web app shield]][github tracker web app]
 
 The heart of GitHub Tracker is the **Flutter web app** at
@@ -13,7 +11,7 @@ which was a little bit too verbose for me personally). Here you can view real
 time data about the top 100 software repos on GitHub (current stars and
 positions and how that compares daily, weekly, and monthly).
 
-todo: insert screenshot here (link to app)
+[![image](https://user-images.githubusercontent.com/19204050/147398194-cc98c935-e537-4278-9654-3800ed827a0a.png)][github tracker web app]
 
 This is currently a single-page application that is Flutter-based. This single
 Flutter app can be found in
