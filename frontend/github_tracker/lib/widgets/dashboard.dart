@@ -102,17 +102,11 @@ class Dashboard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      _ArrowButton(
+                      const _ArrowButton(
                         top: true,
-                        onTap: () {
-                          ref.read(dashboardProvider.notifier).updatePage(-1);
-                        },
                       ),
-                      _ArrowButton(
+                      const _ArrowButton(
                         top: false,
-                        onTap: () {
-                          ref.read(dashboardProvider.notifier).updatePage(1);
-                        },
                       ),
                     ],
                   ),
@@ -175,30 +169,34 @@ class _TableHeader extends StatelessWidget {
   }
 }
 
-class _ArrowButton extends StatelessWidget {
+class _ArrowButton extends ConsumerWidget {
   const _ArrowButton({
     Key? key,
     required this.top,
-    required this.onTap,
   }) : super(key: key);
 
   final bool top;
-  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Positioned(
       bottom: top ? null : 0,
       top: top ? 0 : null,
       left: 0,
       right: 0,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          child: top
-              ? const Icon(Icons.keyboard_arrow_up_outlined)
-              : const Icon(Icons.keyboard_arrow_down_outlined),
+      child: AnimatedOpacity(
+        opacity: ref.watch(dashboardProvider) is DashboardLoadingState ? 0 : 1,
+        duration: const Duration(milliseconds: 142),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () {
+              ref.read(dashboardProvider.notifier).updatePage(top ? -1 : 1);
+            },
+            child: top
+                ? const Icon(Icons.keyboard_arrow_up_outlined)
+                : const Icon(Icons.keyboard_arrow_down_outlined),
+          ),
         ),
       ),
     );
