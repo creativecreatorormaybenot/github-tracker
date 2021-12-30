@@ -33,6 +33,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   /// page) and starts listening for new data.
   void updatePage(int pageChange) {
     assert(mounted);
+    if (state is DashboardLoadingState) return;
+
     _page = (_page + pageChange) % (_totalResults / pageSize).ceil();
     _updateStream();
 
