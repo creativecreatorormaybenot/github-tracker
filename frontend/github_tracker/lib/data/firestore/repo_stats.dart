@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:github_tracker/models/repo_stats.dart';
 
-/// Returns a stream of (todo) repo stats.
+/// Returns a stream of a single page of repo stats.
+///
+/// The page starts at the given [startPosition] (repo position) and includes
+/// a number of [pageSize] repos in total. The number of returned elements may
+/// be less than [pageSize] if the last page is reached.
 Stream<List<RepoStats>> streamRepoStats(int startPosition, int pageSize) {
   return FirebaseFirestore.instance
       .collection('stats')
@@ -10,7 +14,6 @@ Stream<List<RepoStats>> streamRepoStats(int startPosition, int pageSize) {
         fromFirestore: (snapshot, _) => RepoStats.fromJson(snapshot.data()!),
         toFirestore: (value, _) => value.toJson(),
       )
-      // todo: properly query.
       .startAt([startPosition])
       .limit(pageSize)
       .snapshots()
