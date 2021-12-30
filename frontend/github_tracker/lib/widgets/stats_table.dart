@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:github_tracker/data/strings.dart';
 import 'package:github_tracker/models/repo_stats.dart';
