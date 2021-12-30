@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:github_tracker/data/strings.dart';
 import 'package:intl/intl.dart';
 
 /// Enumeration of possible position the arrow in a [StatsChange] can assume.
@@ -40,12 +41,10 @@ class StatsChange extends StatelessWidget {
     // Allow promoting (null-safety) change.
     final change = this.change;
     if (change == null) {
-      // todo: find better handling for this case.
-      return const Text('N/A');
+      return const Text(Strings.dashboardValueNoData);
     }
 
     if (change == 0) {
-      // todo: find better handling for this case or move to Strings.
       return const Text('–');
     }
 

@@ -56,6 +56,10 @@ class Strings {
   /// Message that is displayed while initially loading data in the dashboard.
   static const dashboardLoadingData = 'Loading data...';
 
+  /// Hint that is displayed instead of a value on the dashboard when there is
+  /// no value available (yet).
+  static const dashboardValueNoData = 'N/A';
+
   // ------------------------------ Auth barrier -------------------------------
 
   /// Message that is displayed while showing the auth barrier.
