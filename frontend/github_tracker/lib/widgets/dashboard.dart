@@ -186,7 +186,7 @@ class _ArrowButton extends ConsumerWidget {
       right: 0,
       child: AnimatedOpacity(
         opacity: ref.watch(dashboardProvider) is DashboardLoadingState ? 0 : 1,
-        duration: const Duration(milliseconds: 142),
+        duration: const Duration(milliseconds: 242),
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(

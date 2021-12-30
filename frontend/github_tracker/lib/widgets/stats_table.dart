@@ -41,11 +41,11 @@ class _AnimatedStatsTableState extends State<AnimatedStatsTable>
   late final _controller = AnimationController(
     vsync: this,
     value: 1,
-    duration: const Duration(seconds: 1),
+    duration: const Duration(milliseconds: 1420),
   );
   late final _curvedAnimation = CurvedAnimation(
     parent: _controller,
-    curve: standardEasing,
+    curve: Curves.easeIn,
   );
 
   List<RepoStats>? _oldRepoStats;
