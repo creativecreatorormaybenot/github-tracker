@@ -29,6 +29,18 @@ growing repos, etc.) automatically. All tweets are posted via
 This is currently part of the backend and does not yet have its own place. It
 can be found in [`backend/functions`][tree backend functions].
 
+## Software repos
+
+Note that GitHub Tracker exclusively tracks **software repos**. This is inspired
+by [timsneath's `github-tracker`](https://github.com/timsneath/github-tracker) where
+there is a defined list of **content repos** (repositories that do not develop any
+actual software but only provide content, e.g. articles and such) that are excluded
+from tracking.
+
+The source of truth for content repos can be found in
+[`content-repos.ts`][content repos backend]. Please feel free to open a pull request
+in case the list is not accurate or a content repo is missing.
+
 ## Contributing
 
 Any contributions to this project are more than welcome! If you want to help,
@@ -60,3 +72,4 @@ GitHub tracker, you can consider [becoming a sponsor][github sponsors] :)
 [tree frontend github tracker]: https://github.com/creativecreatorormaybenot/github-tracker/tree/main/frontend/github_tracker
 [tree backend functions]: https://github.com/creativecreatorormaybenot/github-tracker/tree/main/backend/functions
 [github sponsors]: https://github.com/sponsors/creativecreatorormaybenot
+[content repos backend]: https://github.com/creativecreatorormaybenot/github-tracker/blob/main/backend/functions/src/content-repos.ts#L20
