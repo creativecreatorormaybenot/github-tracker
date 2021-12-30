@@ -6,10 +6,18 @@
   "configurations": [
     {
       "name": "github_tracker",
-      "cwd": "frontend\\github_tracker",
+      "cwd": "frontend/github_tracker",
       "request": "launch",
       "type": "dart",
       "deviceId": "chrome"
+    },
+    {
+      "name": "github_tracker release mode",
+      "cwd": "frontend/github_tracker",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "flutterMode": "release"
     }
   ]
 }
