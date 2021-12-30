@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:github_tracker/data/strings.dart';
 import 'package:github_tracker/models/repo_stats.dart';
@@ -7,6 +8,103 @@ import 'package:github_tracker/widgets/repo_identifier.dart';
 import 'package:github_tracker/widgets/repo_position.dart';
 import 'package:github_tracker/widgets/repo_stars.dart';
 import 'package:github_tracker/widgets/stats_change.dart';
+
+/// Animated version of the [StatsTable] that animates whenever the [repoStats] change.
+///
+/// Note that the animation is built in a way that does not consider any change of the
+/// [pageSize].
+class AnimatedStatsTable extends StatefulWidget {
+  /// Creates an [AnimatedStatsTable] with the given [repoStats] and [pageSize].
+  const AnimatedStatsTable({
+    Key? key,
+    required this.repoStats,
+    required this.pageSize,
+  }) : super(key: key);
+
+  /// Data / list of repo stats that should be displayed.
+  ///
+  /// A change of the list (comparing the first items in the lists) will trigger
+  /// an animation of the full list. The slide direction of the animation is determined
+  /// by comparing the position of the first items in the lists. Note that no animation
+  /// will play if the position of the first items of the lists are equal.
+  final List<RepoStats> repoStats;
+
+  /// Page size used to fill remaining cells if [repoStats] does not have enough
+  /// entries.
+  final int pageSize;
+
+  @override
+  _AnimatedStatsTableState createState() => _AnimatedStatsTableState();
+}
+
+class _AnimatedStatsTableState extends State<AnimatedStatsTable>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    value: 1,
+    duration: const Duration(milliseconds: 420),
+  );
+
+  List<RepoStats>? _oldRepoStats;
+  bool get _slideDown {
+    assert(_oldRepoStats != null,
+        'Slide animation can only be played when there are old repo stats.');
+    return _oldRepoStats!.first.latest.position >
+        widget.repoStats.first.latest.position;
+  }
+
+  @override
+  void didUpdateWidget(covariant AnimatedStatsTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final oldLeadingPosition = oldWidget.repoStats.first.latest.position;
+    final newLeadingPosition = widget.repoStats.first.latest.position;
+    if (oldLeadingPosition != newLeadingPosition) {
+      _oldRepoStats = List.of(oldWidget.repoStats);
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.hardEdge,
+      children: [
+        if (_oldRepoStats != null)
+          SlideTransition(
+            position: _controller.drive(
+              Tween<Offset>(
+                begin: _slideDown ? const Offset(0, 1) : const Offset(0, -1),
+                end: Offset.zero,
+              ),
+            ),
+            child: StatsTable(
+              repoStats: _oldRepoStats!,
+              pageSize: widget.pageSize,
+            ),
+          ),
+        SlideTransition(
+          position: _controller.drive(
+            Tween<Offset>(
+              begin: _slideDown ? const Offset(0, -1) : const Offset(0, 1),
+              end: Offset.zero,
+            ),
+          ),
+          child: StatsTable(
+            repoStats: widget.repoStats,
+            pageSize: widget.pageSize,
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// Table for displaying stats of multiple repos.
 class StatsTable extends StatelessWidget {

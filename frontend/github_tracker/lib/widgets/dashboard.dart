@@ -95,7 +95,7 @@ class Dashboard extends ConsumerWidget {
                           onTap: () {
                             ref.read(dashboardProvider.notifier).updatePage(1);
                           },
-                          child: StatsTable(
+                          child: AnimatedStatsTable(
                             repoStats: data,
                             pageSize:
                                 ref.watch(dashboardProvider.notifier).pageSize,
