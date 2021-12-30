@@ -22,6 +22,7 @@ class TwitterFollowButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Link(
       uri: Uri.parse('https://twitter.com/intent/follow?screen_name=$username'),
+      target: LinkTarget.blank,
       builder: (context, followLink) {
         return TextButton.icon(
           onPressed: followLink,
