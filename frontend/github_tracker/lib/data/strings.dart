@@ -1,3 +1,5 @@
+import 'package:github_tracker/widgets/twitter_follow_button.dart';
+
 /// Placeholder (namespace) for all string resources.
 ///
 /// This serves the purpose of collecting all strings used in the UI
@@ -64,6 +66,12 @@ class Strings {
 
   /// Message that is displayed while showing the auth barrier.
   static const authBarrierMessage = 'Securing session...';
+
+  // -------------------------- Twitter follow button --------------------------
+
+  /// Button label for Twitter follow buttons.
+  static String twitterFollowButtonLabel(String username) =>
+      'Follow @$username';
 
   // ------------------------------- Error code --------------------------------
 

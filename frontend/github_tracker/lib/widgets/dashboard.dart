@@ -7,6 +7,7 @@ import 'package:github_tracker/providers/dashboard.dart';
 import 'package:github_tracker/widgets/error_code.dart';
 import 'package:github_tracker/widgets/link.dart';
 import 'package:github_tracker/widgets/stats_table.dart';
+import 'package:github_tracker/widgets/twitter_follow_button.dart';
 import 'package:intl/intl.dart';
 
 /// Main widget for the main dashboard displaying repo stats.
@@ -73,60 +74,62 @@ class Dashboard extends ConsumerWidget {
       child: Stack(
         children: [
           if (data != null)
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                // todo: find a better layout approach :)
-                maxWidth: 420 + 420 * MediaQuery.textScaleFactorOf(context),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _TableHeader(),
-                  MouseRegion(
-                    cursor: state is DashboardLoadingState
-                        ? SystemMouseCursors.wait
-                        : SystemMouseCursors.click,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: state is DashboardLoadingState
-                          ? null
-                          : () {
-                              ref
-                                  .read(dashboardProvider.notifier)
-                                  .updatePage(1);
-                            },
-                      child: StatsTable(
-                        repoStats: data,
-                        pageSize:
-                            ref.watch(dashboardProvider.notifier).pageSize,
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  // todo: find a better layout approach :)
+                  maxWidth: 420 + 420 * MediaQuery.textScaleFactorOf(context),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _TableHeader(),
+                    MouseRegion(
+                      cursor: state is DashboardLoadingState
+                          ? SystemMouseCursors.wait
+                          : SystemMouseCursors.click,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: state is DashboardLoadingState
+                            ? null
+                            : () {
+                                ref
+                                    .read(dashboardProvider.notifier)
+                                    .updatePage(1);
+                              },
+                        child: StatsTable(
+                          repoStats: data,
+                          pageSize:
+                              ref.watch(dashboardProvider.notifier).pageSize,
+                        ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 8,
-                      top: 32,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SelectableText(
-                          Strings.dashboardFooter(
-                            DateFormat('HH:mm, MMMM d, y')
-                                .format(data.first.metadata.timestamp),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 8,
+                        top: 32,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SelectableText(
+                            Strings.dashboardFooter(
+                              DateFormat('HH:mm, MMMM d, y')
+                                  .format(data.first.metadata.timestamp),
+                            ),
+                            style: Theme.of(context).textTheme.caption,
                           ),
-                          style: Theme.of(context).textTheme.caption,
-                        ),
-                        const Link(
-                          url: Strings.dashboardFooterLink,
-                          body: Text(Strings.dashboardFooterLink),
-                        ),
-                      ],
+                          const Link(
+                            url: Strings.dashboardFooterLink,
+                            body: Text(Strings.dashboardFooterLink),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           if (state is DashboardLoadingState)
@@ -140,6 +143,27 @@ class Dashboard extends ConsumerWidget {
                 ),
               ),
             ),
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: const [
+                Padding(
+                  padding: EdgeInsets.only(
+                    bottom: 8,
+                  ),
+                  child: TwitterFollowButton(
+                    username: 'github_tracker',
+                  ),
+                ),
+                TwitterFollowButton(
+                  username: 'creativemaybeno',
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
