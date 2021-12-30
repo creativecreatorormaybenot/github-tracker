@@ -42,15 +42,28 @@ class _AnimatedStatsTableState extends State<AnimatedStatsTable>
   late final _controller = AnimationController(
     vsync: this,
     value: 1,
-    duration: const Duration(milliseconds: 420),
+    duration: const Duration(seconds: 3),
+  );
+  late final _curvedAnimation = CurvedAnimation(
+    parent: _controller,
+    curve: standardEasing,
   );
 
   List<RepoStats>? _oldRepoStats;
   bool get _slideDown {
-    assert(_oldRepoStats != null,
-        'Slide animation can only be played when there are old repo stats.');
-    return _oldRepoStats!.first.latest.position >
-        widget.repoStats.first.latest.position;
+    if (_oldRepoStats == null) return false;
+
+    final oldLeadingPosition = _oldRepoStats!.first.latest.position;
+    final newLeadingPosition = widget.repoStats.first.latest.position;
+
+    final slideDown = oldLeadingPosition > newLeadingPosition;
+    if ((oldLeadingPosition - newLeadingPosition).abs() > widget.pageSize) {
+      // If the difference between the two positions is greater than the page size,
+      // we are (probably) rolling over from the last page to the first page or vise
+      // versa, in which case we need to reverse the natural sliding direction.
+      return !slideDown;
+    }
+    return slideDown;
   }
 
   @override
@@ -78,10 +91,10 @@ class _AnimatedStatsTableState extends State<AnimatedStatsTable>
       children: [
         if (_oldRepoStats != null)
           SlideTransition(
-            position: _controller.drive(
+            position: _curvedAnimation.drive(
               Tween<Offset>(
-                begin: _slideDown ? const Offset(0, 1) : const Offset(0, -1),
-                end: Offset.zero,
+                begin: Offset.zero,
+                end: _slideDown ? const Offset(0, 1) : const Offset(0, -1),
               ),
             ),
             child: StatsTable(
@@ -90,7 +103,7 @@ class _AnimatedStatsTableState extends State<AnimatedStatsTable>
             ),
           ),
         SlideTransition(
-          position: _controller.drive(
+          position: _curvedAnimation.drive(
             Tween<Offset>(
               begin: _slideDown ? const Offset(0, -1) : const Offset(0, 1),
               end: Offset.zero,
