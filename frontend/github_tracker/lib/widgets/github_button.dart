@@ -21,6 +21,7 @@ class GitHubRepoButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Link(
       uri: Uri.parse('https://github.com/$fullName'),
+      target: LinkTarget.blank,
       builder: (context, followLink) {
         return TextButton.icon(
           onPressed: followLink,

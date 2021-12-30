@@ -5,10 +5,8 @@ import 'package:github_tracker/data/strings.dart';
 import 'package:github_tracker/models/dashboard_state.dart';
 import 'package:github_tracker/providers/dashboard.dart';
 import 'package:github_tracker/widgets/error_code.dart';
-import 'package:github_tracker/widgets/github_button.dart';
 import 'package:github_tracker/widgets/link.dart';
 import 'package:github_tracker/widgets/stats_table.dart';
-import 'package:github_tracker/widgets/twitter_follow_button.dart';
 import 'package:intl/intl.dart';
 
 /// Main widget for the main dashboard displaying repo stats.
@@ -144,34 +142,6 @@ class Dashboard extends ConsumerWidget {
                 ),
               ),
             ),
-          Positioned(
-            bottom: 16,
-            left: 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Padding(
-                  padding: EdgeInsets.only(
-                    bottom: 8,
-                  ),
-                  child: TwitterFollowButton(
-                    username: 'github_tracker',
-                  ),
-                ),
-                TwitterFollowButton(
-                  username: 'creativemaybeno',
-                ),
-              ],
-            ),
-          ),
-          const Positioned(
-            top: 16,
-            left: 16,
-            child: GitHubRepoButton(
-              fullName: 'creativecreatorormaybenot/github-tracker',
-            ),
-          ),
         ],
       ),
     );

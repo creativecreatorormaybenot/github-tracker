@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:github_tracker/data/strings.dart';
 import 'package:github_tracker/widgets/auth_barrier.dart';
 import 'package:github_tracker/widgets/dashboard.dart';
+import 'package:github_tracker/widgets/github_button.dart';
+import 'package:github_tracker/widgets/twitter_follow_button.dart';
 
 /// App entry point for the GitHub tracker app.
 ///
@@ -25,10 +27,42 @@ class App extends StatelessWidget {
           primarySwatch: Colors.grey,
         ),
         themeMode: ThemeMode.system,
-        home: const Scaffold(
+        home: Scaffold(
           body: AuthBarrier(
-            child: Center(
-              child: Dashboard(),
+            child: Stack(
+              children: [
+                const Center(
+                  child: Dashboard(),
+                ),
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom: 8,
+                        ),
+                        child: TwitterFollowButton(
+                          username: 'github_tracker',
+                        ),
+                      ),
+                      TwitterFollowButton(
+                        username: 'creativemaybeno',
+                      ),
+                    ],
+                  ),
+                ),
+                const Positioned(
+                  top: 16,
+                  left: 16,
+                  child: GitHubRepoButton(
+                    fullName: 'creativecreatorormaybenot/github-tracker',
+                  ),
+                ),
+              ],
             ),
           ),
         ),
