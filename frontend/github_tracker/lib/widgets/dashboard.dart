@@ -180,13 +180,13 @@ class _ArrowButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Positioned(
-      bottom: top ? null : 0,
-      top: top ? 0 : null,
+      bottom: top ? null : -8,
+      top: top ? -8 : null,
       left: 0,
       right: 0,
       child: AnimatedOpacity(
         opacity: ref.watch(dashboardProvider) is DashboardLoadingState ? 0 : 1,
-        duration: const Duration(milliseconds: 142),
+        duration: const Duration(milliseconds: 420),
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
