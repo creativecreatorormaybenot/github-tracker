@@ -83,9 +83,8 @@ class Dashboard extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const _TableHeader(),
                   MouseRegion(
-                    // This does not update visually when mouse is not moved.
-                    // todo: create flutter/flutter issue for this.
                     cursor: state is DashboardLoadingState
                         ? SystemMouseCursors.wait
                         : SystemMouseCursors.click,
@@ -142,6 +141,23 @@ class Dashboard extends ConsumerWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        bottom: 16,
+      ),
+      child: Text(
+        Strings.dashboardTableTitle,
+        style: Theme.of(context).textTheme.headline4,
       ),
     );
   }
