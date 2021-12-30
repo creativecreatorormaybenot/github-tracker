@@ -50,12 +50,16 @@ class Link extends StatelessWidget {
           return GestureDetector(
             onTap: followLink,
             child: DefaultTextStyle.merge(
-              style: const TextStyle(
+              style: TextStyle(
                 decoration: TextDecoration.underline,
-                // The default link color according to the HTML living standard.
-                // See https://html.spec.whatwg.org/multipage/rendering.html#phrasing-content-3,
-                // which defines :link { color: #0000EE; }.
-                color: Color(0xff0000ee),
+                color: Theme.of(context).brightness == Brightness.dark
+                    // The dark mode link color implemented by Chromium.
+                    // See https://github.com/whatwg/html/issues/5426#issuecomment-904021675.
+                    ? const Color(0xff9e9eff)
+                    // The default link color according to the HTML living
+                    // standard. See https://html.spec.whatwg.org/multipage/rendering.html#phrasing-content-3,
+                    // which defines :link { color: #0000EE; }.
+                    : const Color(0xff0000ee),
               ),
               child: body,
             ),
