@@ -95,4 +95,5 @@ export const contentRepos: Array<string> = [
   'trimstray/the-book-of-secret-knowledge',
   'leonardomso/33-js-concepts',
   'sdmg15/Best-websites-a-programmer-should-visit',
+  'practical-tutorials/project-based-learning',
 ]
