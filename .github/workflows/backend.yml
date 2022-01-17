@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint:
-    timeout-minutes: 2
+    timeout-minutes: 4
     runs-on: ubuntu-latest
     name: ${{ matrix.package }} linting
     strategy:
@@ -27,7 +27,7 @@ jobs:
         working-directory: ${{ env.working-directory }}
 
   test:
-    timeout-minutes: 3
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     name: ${{ matrix.package }} testing
     strategy:
