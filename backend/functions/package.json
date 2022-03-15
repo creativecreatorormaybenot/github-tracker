@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.15.0",
-    "@typescript-eslint/parser": "^5.14.0",
+    "@typescript-eslint/parser": "^5.15.0",
     "eslint": "^8.11.0",
     "eslint-plugin-import": "^2.25.4",
     "firebase-functions-test": "^0.3.3",
