@@ -4,7 +4,17 @@
 # https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 
 version: 2
+enable-beta-ecosystems: true
 updates:
+  - package-ecosystem: 'pub'
+    directory: '/frontend/github_tracker'
+    schedule:
+      interval: 'daily'
+    assignees:
+      - 'creativecreatorormaybenot'
+    reviewers:
+      - 'creativecreatorormaybenot'
+    open-pull-requests-limit: 2
   - package-ecosystem: 'npm'
     directory: '/backend/functions'
     schedule:
