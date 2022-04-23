@@ -7,16 +7,16 @@
     "test": "firebase emulators:exec --only firestore \"jest\""
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^2.0.1",
-    "@types/jest": "^27.0.3",
-    "@typescript-eslint/eslint-plugin": "^5.8.1",
-    "@typescript-eslint/parser": "^5.8.1",
-    "eslint": "^8.5.0",
-    "eslint-plugin-import": "^2.25.3",
-    "firebase": "^9.1.0",
-    "firebase-tools": "^10.0.1",
-    "jest": "^27.4.5",
-    "ts-jest": "^27.1.2",
-    "typescript": "^4.5.4"
+    "@firebase/rules-unit-testing": "^2.0.2",
+    "@types/jest": "^27.4.1",
+    "@typescript-eslint/eslint-plugin": "^5.20.0",
+    "@typescript-eslint/parser": "^5.20.0",
+    "eslint": "^8.14.0",
+    "eslint-plugin-import": "^2.26.0",
+    "firebase": "^9.6.11",
+    "firebase-tools": "^10.7.1",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.4",
+    "typescript": "^4.6.3"
   }
 }
