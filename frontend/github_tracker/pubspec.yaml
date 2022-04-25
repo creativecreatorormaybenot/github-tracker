@@ -30,7 +30,7 @@ dependencies:
   url_strategy: ^0.2.0
 
   # UI
-  flutter_blurhash: ^0.6.0
+  flutter_blurhash: ^0.7.0
 
 dev_dependencies:
   flutter_test:
