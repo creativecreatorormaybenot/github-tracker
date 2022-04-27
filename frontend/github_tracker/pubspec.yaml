@@ -16,7 +16,7 @@ dependencies:
 
   # Firebase
   cloud_firestore: ^3.1.13
-  firebase_auth: ^3.3.15
+  firebase_auth: ^3.3.16
 
   # Model definitions
   freezed_annotation: ">=1.1.0 <3.0.0"
