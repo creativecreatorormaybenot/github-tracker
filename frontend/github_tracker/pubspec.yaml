@@ -42,7 +42,7 @@ dev_dependencies:
   # Code generation (flutter pub run build_runner build)
   build_runner: ^2.1.7
   freezed: ^2.0.2
-  json_serializable: ^6.1.3 # Transitive dependency of freezed (added for transparency).
+  json_serializable: ^6.2.0 # Transitive dependency of freezed (added for transparency).
 
 flutter:
   uses-material-design: true
