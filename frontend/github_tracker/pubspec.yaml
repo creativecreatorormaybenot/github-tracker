@@ -40,7 +40,7 @@ dev_dependencies:
   flutter_lints: ^1.0.4
 
   # Code generation (flutter pub run build_runner build)
-  build_runner: ^2.1.7
+  build_runner: ^2.1.11
   freezed: ^2.0.3
   json_serializable: ^6.2.0 # Transitive dependency of freezed (added for transparency).
 
