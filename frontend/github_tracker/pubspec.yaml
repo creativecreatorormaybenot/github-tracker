@@ -37,7 +37,7 @@ dev_dependencies:
     sdk: flutter
 
   # Linting
-  flutter_lints: ^1.0.4
+  flutter_lints: ^2.0.1
 
   # Code generation (flutter pub run build_runner build)
   build_runner: ^2.1.11

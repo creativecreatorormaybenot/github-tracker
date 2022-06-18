@@ -33,7 +33,7 @@ class AnimatedStatsTable extends StatefulWidget {
   final int pageSize;
 
   @override
-  _AnimatedStatsTableState createState() => _AnimatedStatsTableState();
+  State<AnimatedStatsTable> createState() => _AnimatedStatsTableState();
 }
 
 class _AnimatedStatsTableState extends State<AnimatedStatsTable>
