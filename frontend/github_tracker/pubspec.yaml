@@ -15,7 +15,7 @@ dependencies:
   flutter_riverpod: ^1.0.4
 
   # Firebase
-  cloud_firestore: ^3.1.17
+  cloud_firestore: ^3.1.18
   firebase_auth: ^3.3.19
 
   # Model definitions
