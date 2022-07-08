@@ -20,7 +20,7 @@ dependencies:
 
   # Model definitions
   freezed_annotation: ^2.0.3
-  json_annotation: ^4.4.0 # Transitive dependency of freezed_annotation (added for transparency).
+  json_annotation: ^4.6.0 # Transitive dependency of freezed_annotation (added for transparency).
 
   # i18n
   intl: ^0.17.0
