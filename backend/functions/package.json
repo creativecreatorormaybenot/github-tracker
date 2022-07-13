@@ -18,7 +18,7 @@
     "@octokit/rest": "^18.12.0",
     "@octokit/types": "^6.38.1",
     "blurhash": "^1.1.5",
-    "firebase-admin": "^10.3.0",
+    "firebase-admin": "^11.0.0",
     "firebase-functions": "^3.21.2",
     "jimp": "^0.16.1",
     "lodash": "^4.17.21",
