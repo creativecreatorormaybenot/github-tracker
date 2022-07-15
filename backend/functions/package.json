@@ -15,7 +15,7 @@
   "main": "lib/index.js",
   "dependencies": {
     "@google-cloud/secret-manager": "^4.0.0",
-    "@octokit/rest": "^18.12.0",
+    "@octokit/rest": "^19.0.3",
     "@octokit/types": "^6.38.1",
     "blurhash": "^1.1.5",
     "firebase-admin": "^10.3.0",
@@ -26,7 +26,7 @@
     "twitter-lite": "^1.1.0"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^5.30.5",
+    "@typescript-eslint/eslint-plugin": "^5.30.6",
     "@typescript-eslint/parser": "^5.30.0",
     "eslint": "^8.19.0",
     "eslint-plugin-import": "^2.26.0",
