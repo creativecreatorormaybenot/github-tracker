@@ -19,7 +19,7 @@ dependencies:
   firebase_auth: ^3.4.1
 
   # Model definitions
-  freezed_annotation: ^2.0.3
+  freezed_annotation: ^2.1.0
   json_annotation: ^4.6.0 # Transitive dependency of freezed_annotation (added for transparency).
 
   # i18n
