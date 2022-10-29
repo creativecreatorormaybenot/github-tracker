@@ -4,9 +4,6 @@ analyzer:
   exclude:
     - '**/*.g.dart'
     - '**/*.freezed.dart'
+    - 'lib/generated_plugin_registrant.dart'
   errors:
     invalid_annotation_target: ignore
-
-linter:
-  rules:
-    - public_member_api_docs
