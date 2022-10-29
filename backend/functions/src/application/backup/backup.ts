@@ -2,7 +2,6 @@ import * as admin from 'firebase-admin';
 import { logger } from 'firebase-functions';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
-const client = new admin.firestore.v1.FirestoreAdminClient();
 const bucket = 'gs://github-tracker-backups';
 // The repos/<repo>/data collections are the only collection that
 // contain meaningful data for backups. The stats collection is
@@ -13,6 +12,7 @@ export const backupDataFunction =
   // Backs up the whole Firestore database (repos collection) once per week.
   onSchedule('0 0 * * 0', async (event) => {
     const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
+    const client = new admin.firestore.v1.FirestoreAdminClient();
     const databaseName = client.databasePath(projectId!, '(default)');
 
     const responses = await client.exportDocuments({

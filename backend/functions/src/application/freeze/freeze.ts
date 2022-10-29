@@ -3,9 +3,6 @@ import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
-const firestore = getFirestore();
-const storage = getStorage();
-
 const bucket = 'gs://github-tracker-freezer';
 
 export const freezeDataFunction =
@@ -17,6 +14,8 @@ export const freezeDataFunction =
   // data every week.
   // This runs so frequently because we want to keep the JSON files small.
   onSchedule('0 */3 * * *', async (event) => {
+    const firestore = getFirestore();
+    const storage = getStorage();
     const snapshot = await firestore
       .collectionGroup('data')
       .where(
