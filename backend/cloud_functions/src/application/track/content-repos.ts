@@ -96,4 +96,5 @@ export const contentRepos: Array<string> = [
   'leonardomso/33-js-concepts',
   'sdmg15/Best-websites-a-programmer-should-visit',
   'practical-tutorials/project-based-learning',
-]
+  'GrowingGit/GitHub-Chinese-Top-Charts',
+];

@@ -42,21 +42,20 @@ export const cleanUpTweetsFunction = schedule('0 0 1 * *').onRun(
     const date = new Date();
     date.setDate(date.getDate() - 8);
 
-    const tweets = await twitter.v2.userTimeline('1363301907033444353', {
+    const paginator = await twitter.v2.userTimeline('1363301907033444353', {
       max_results: 100,
       end_time: date.toISOString(),
       'tweet.fields': ['public_metrics'],
     });
-    while (tweets.tweets.length > 0) {
-      console.info(`Iterating over ${tweets.tweets.length} tweets.`);
-      for (const tweet of tweets) {
-        if (tweet.public_metrics!.like_count > likesThreshold) return;
-        console.info(
-          `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes (text=${tweet.text}).`
-        );
-        await twitter.v2.deleteTweet(tweet.id);
-      }
-      await tweets.fetchNext(100);
+    let count = 0;
+    for await (const [tweet, _] of paginator.fetchAndIterate()) {
+      count++;
+      if (tweet.public_metrics!.like_count > likesThreshold) continue;
+      console.info(
+        `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes (text=${tweet.text}).`
+      );
+      await twitter.v2.deleteTweet(tweet.id);
     }
+    console.info(`Iterated over ${count} tweets.`);
   }
 );
