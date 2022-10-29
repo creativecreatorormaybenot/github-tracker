@@ -40,7 +40,7 @@ export const contentRepos: Array<string> = [
   'ossu/computer-science',
   'NARKOZ/hacker-scripts',
   'papers-we-love/papers-we-love',
-  'danistefanovic/build-your-own-x',
+  'codecrafters-io/build-your-own-x',
   'thedaviddias/Front-End-Checklist',
   'Trinea/android-open-project',
   'donnemartin/system-design-primer',

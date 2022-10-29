@@ -22,7 +22,7 @@
     "jimp": "^0.16.2",
     "lodash": "^4.17.21",
     "numbro": "^2.3.6",
-    "twitter-lite": "^1.1.0"
+    "twitter-api-v2": "^1.12.9"
   },
   "devDependencies": {
     "@octokit/types": "^8.0.0",
