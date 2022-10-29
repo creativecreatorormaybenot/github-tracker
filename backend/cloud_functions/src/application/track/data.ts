@@ -15,7 +15,6 @@ import {
   Timestamp,
   WriteBatch,
 } from 'firebase-admin/firestore';
-import { logger } from 'firebase-functions';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { merge } from 'lodash';
 import numbro from 'numbro';
@@ -223,7 +222,7 @@ export const updateDataFunction = onSchedule('*/15 * * * *', async (event) => {
     top100Previous.push(undefined);
 
     if (repoIndex !== data.position - 1) {
-      logger.warn(
+      console.warn(
         `Mismatch between repo index ${repoIndex} and repo position ${data.position} of repo ${data.full_name}.`
       );
     }
@@ -303,7 +302,7 @@ export const updateDataFunction = onSchedule('*/15 * * * *', async (event) => {
   await Promise.all(batchingPromises);
 
   if (!top100Internal.every((value) => value !== undefined)) {
-    logger.warn(
+    console.warn(
       `Missing internal data (${top100Internal.filter(
         (value) => value === undefined
       )}).`
@@ -430,7 +429,7 @@ export const postMonthlyFunction = onSchedule(
       top100ThirtyOneDay.push(undefined);
 
       if (repoIndex !== data.position - 1) {
-        logger.warn(
+        console.warn(
           `Mismatch between repo index ${repoIndex} and repo position ${data.position} of repo ${data.full_name}.`
         );
       }
@@ -440,7 +439,7 @@ export const postMonthlyFunction = onSchedule(
     }
 
     if (!top100Internal.every((value) => value !== undefined)) {
-      logger.warn(
+      console.warn(
         `Missing internal data (${top100Internal.filter(
           (value) => value === undefined
         )}).`
@@ -497,7 +496,7 @@ async function fetchTop100External(): Promise<Repo[] | undefined> {
 
 function checkTop100Integrity(repos: Repo[]): boolean {
   if (repos.length !== 100) {
-    logger.error(
+    console.error(
       `Loaded data integrity compromised as only ` +
         `${repos.length}/100 top 100 repos were loaded.`
     );
@@ -509,7 +508,7 @@ function checkTop100Integrity(repos: Repo[]): boolean {
       stars = repos[i].stargazers_count;
       continue;
     }
-    logger.error(
+    console.error(
       `Integrity of loaded top 100 data is compromised as ` +
         `${repos[i].full_name} (position=${i + 1}) has ${
           repos[i].stargazers_count
@@ -669,7 +668,7 @@ async function getTwitterTag({
     twitter_username = user.twitter_username;
   } else {
     if (repo.owner!.type !== 'Organization') {
-      logger.warn(
+      console.warn(
         `Unknown owner type "${repo.owner!.type}" for the owner of the ${
           repo.full_name
         } repo.`
@@ -754,7 +753,7 @@ ${await getTwitterTag({
 })}${getHashtags(repo).join(' ')}
 ${repo.html_url}`;
 
-  logger.info(
+  console.info(
     `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars (${tweet.length}/280 characters).`
   );
   tweetManager.addTweet(new Tweet(tweet, 0));
@@ -799,7 +798,7 @@ Way to go${await getTwitterTag({
     ).join(' ')}
 ${repo.html_url}`;
 
-    logger.info(
+    console.info(
       `Tweeting about ${repoTag} reaching the ${milestone} milestone (${tweet.length}/280 characters).`
     );
     tweetManager.addTweet(new Tweet(tweet, 1));
@@ -838,7 +837,7 @@ async function trackRepoPosition({
 
   const repo = top100External[current.position - 1];
   if (repo.id !== current.id) {
-    logger.warn(
+    console.warn(
       `Position of ${current.full_name} in the top 100 array does not match actual position.`
     );
     return;
@@ -870,7 +869,7 @@ ${await getTwitterTag({
 })}${combinedHashtags}
 ${current.html_url}`;
 
-  logger.info(
+  console.info(
     `Tweeting about ${repoTag} surpassing ${getRepoTag(previousLeader)} (${
       tweet.length
     }/280 characters).`
@@ -986,7 +985,7 @@ Way to go${await getTwitterTag({
   })} 💪 ${getHashtags(repo).join(' ')}
 ${repo.html_url}`;
 
-  logger.info(
+  console.info(
     `Tweeting about ${repoTag} being the fastest growing repo ${period} (${tweet.length}/280 characters).`
   );
   tweetManager.addTweet(new Tweet(tweet, 2));

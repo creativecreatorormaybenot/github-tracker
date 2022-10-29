@@ -1,5 +1,4 @@
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { logger } from 'firebase-functions';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { TwitterApi } from 'twitter-api-v2';
 import { SecretsAccessor } from '../../infrastructure/secrets';
@@ -48,7 +47,7 @@ export const cleanUpTweetsFunction = onSchedule(
       `(from:github_tracker) -min_faves:${likesThreshold} until:${tenDaysAgo.getFullYear()}-${tenDaysAgo.getMonth()}-${tenDaysAgo.getDate()}`
     );
     for (const tweet of search) {
-      logger.info(
+      console.info(
         `Deleting tweet with id="${tweet.id}" because it has less than ${likesThreshold} likes.`
       );
       await twitter.v2.deleteTweet(tweet.id);

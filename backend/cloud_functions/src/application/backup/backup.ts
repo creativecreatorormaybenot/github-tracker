@@ -1,5 +1,4 @@
 import * as admin from 'firebase-admin';
-import { logger } from 'firebase-functions';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
 const bucket = 'gs://github-tracker-backups';
@@ -27,7 +26,7 @@ export const backupDataFunction =
       collections.length === 0
         ? 'all collections'
         : `collections [${collections.join(', ')}]`;
-    logger.info(
+    console.info(
       `Exporting everything from ${collectionNames} ` +
         `in ${databaseName} to ${bucket} ` +
         `with the operation name "${response['name']}".`

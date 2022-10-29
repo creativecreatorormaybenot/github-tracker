@@ -1,6 +1,5 @@
 import { getFirestore, Timestamp, WriteBatch } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import { logger } from 'firebase-functions';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
 const bucket = 'gs://github-tracker-freezer';
@@ -31,7 +30,7 @@ export const freezeDataFunction =
       .limit(1e4)
       .get();
     if (snapshot.docs.length === 0) {
-      logger.info('No old data to extract.');
+      console.info('No old data to extract.');
       return;
     }
 
@@ -60,7 +59,7 @@ export const freezeDataFunction =
         `${earliestTime.toMillis()}-${lastTime.toMillis()}@${Date.now()}.json`
       );
     await file.save(json);
-    logger.info(
+    console.info(
       `Extracted ${
         snapshot.docs.length
       } documents (from ${earliestTime.toDate()} to ${lastTime.toDate()}).`
@@ -79,5 +78,5 @@ export const freezeDataFunction =
 
     // Once saving of the document data has succeeded, we can delete the redundant documents.
     await Promise.all([...batches.map((batch) => batch.commit())]);
-    logger.info('Successfully deleted all documents from Firestore.');
+    console.info('Successfully deleted all documents from Firestore.');
   });
