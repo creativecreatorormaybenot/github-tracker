@@ -52,7 +52,7 @@ export const cleanUpTweetsFunction = schedule('0 0 1 * *').onRun(
       count++;
       if (tweet.public_metrics!.like_count > likesThreshold) continue;
       console.info(
-        `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes (text=${tweet.text}).`
+        `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes.`
       );
       await twitter.v2.deleteTweet(tweet.id);
     }
