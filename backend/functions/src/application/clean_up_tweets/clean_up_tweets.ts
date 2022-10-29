@@ -8,6 +8,7 @@ const secretManager = new SecretManagerServiceClient();
 // The Twitter client is initialized asynchronously in the update function
 // in order to keep the async code in there and ensure initialization has
 // completed.
+// Tweets below this threshold are deemed irrelevant.
 let twitter: TwitterApi;
 
 // Any tweet with matching or less likes than this threshold will be deleted.
