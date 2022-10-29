@@ -42,14 +42,14 @@ export const cleanUpTweetsFunction = schedule('0 0 */9 * *').onRun(
     const tenDaysAgo = new Date();
     tenDaysAgo.setDate(tenDaysAgo.getDate() - 8);
 
-    const search = await twitter.v2.searchAll(
+    const search = await twitter.v1.tweets(
       `(from:github_tracker) -min_faves:${likesThreshold} until:${tenDaysAgo.getFullYear()}-${tenDaysAgo.getMonth()}-${tenDaysAgo.getDate()}`
     );
     for (const tweet of search) {
       console.info(
         `Deleting tweet with id="${tweet.id}" because it has less than ${likesThreshold} likes.`
       );
-      await twitter.v2.deleteTweet(tweet.id);
+      await twitter.v1.deleteTweet(tweet.id.toString());
     }
   }
 );

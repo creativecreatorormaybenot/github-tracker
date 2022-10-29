@@ -27,7 +27,7 @@ export class TweetManager {
 
     const tweet = this.tweets.shift();
     if (tweet === undefined) return;
-    await this.twitter.v2.tweet(tweet.content);
+    await this.twitter.v1.tweet(tweet.content);
   }
 }
 
