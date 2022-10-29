@@ -8,14 +8,15 @@ import {
   CollectionReference,
   DocumentData,
   DocumentSnapshot,
+  Firestore,
   FirestoreDataConverter,
   getFirestore,
   QueryDocumentSnapshot,
   Timestamp,
   WriteBatch,
 } from 'firebase-admin/firestore';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { merge } from 'lodash';
 import numbro from 'numbro';
 import { TwitterApi } from 'twitter-api-v2';
@@ -27,7 +28,9 @@ import { milestones } from './milestones';
 
 // Initialize clients that can be initialized synchronously.
 const octokit = new Octokit();
-const firestore = getFirestore();
+// Initialize Firestore only after the first function call because
+// getFirestore() must not be accessed before initializeApp().
+let firestore: Firestore;
 const secretManager = new SecretManagerServiceClient();
 // The Twitter client is initialized asynchronously in in order to keep the
 // async code in there and ensure initialization has completed.
@@ -123,6 +126,7 @@ function typedCollection<T>(path: string): CollectionReference<T> {
  * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
 export const updateDataFunction = onSchedule('*/15 * * * *', async (event) => {
+  initializeFirestore();
   await initializeTwitter();
   const tweetManager = new TweetManager(twitter);
 
@@ -363,6 +367,7 @@ export const postMonthlyFunction = onSchedule(
     // Early exit if the function was not triggered on the last day of the month.
     if (!isLastDayOfMonth()) return;
 
+    initializeFirestore();
     await initializeTwitter();
     const tweetManager = new TweetManager(twitter);
 
@@ -985,6 +990,15 @@ ${repo.html_url}`;
     `Tweeting about ${repoTag} being the fastest growing repo ${period} (${tweet.length}/280 characters).`
   );
   tweetManager.addTweet(new Tweet(tweet, 2));
+}
+
+/**
+ * Initializes Firestore outside of the global scope in order to run after
+ * initializeApp().
+ */
+function initializeFirestore() {
+  if (firestore !== undefined) return;
+  firestore = getFirestore();
 }
 
 /**
