@@ -17,9 +17,9 @@ const likesThreshold = 3;
  * Deletes all tweets matching or below the specified likes threshold that
  * is older than 8 days.
  *
- * The function is currently triggered on every 9th day of the month.
+ * The function is currently triggered on the first day of every month.
  */
-export const cleanUpTweetsFunction = schedule('0 0 */9 * *').onRun(
+export const cleanUpTweetsFunction = schedule('0 0 1 * *').onRun(
   async (context) => {
     // Load the Twitter client asynchronously on cold start.
     // The reason we have to do this is in order to ensure that
@@ -39,16 +39,22 @@ export const cleanUpTweetsFunction = schedule('0 0 */9 * *').onRun(
       });
     }
 
-    const tenDaysAgo = new Date();
-    tenDaysAgo.setDate(tenDaysAgo.getDate() - 8);
+    const date = new Date();
+    date.setDate(date.getDate() - 8);
 
-    const query = `(from:github_tracker) -min_faves:${likesThreshold} until:${tenDaysAgo.getFullYear()}-${tenDaysAgo.getMonth()}-${tenDaysAgo.getDate()}`;
-    const search = await twitter.v2.search(query);
-    for (const tweet of search) {
-      console.info(
-        `Deleting tweet with id="${tweet.id}" as it matches q="${query}".`
-      );
-      await twitter.v2.deleteTweet(tweet.id);
+    const tweets = await twitter.v2.userTimeline('1363301907033444353', {
+      'tweet.fields': ['public_metrics'],
+    });
+    while (tweets.tweets.length > 0) {
+      console.info(`Iterating over ${tweets.tweets.length} tweets.`);
+      for (const tweet of tweets) {
+        if (tweet.public_metrics!.like_count > likesThreshold) return;
+        console.info(
+          `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes.`
+        );
+        await twitter.v2.deleteTweet(tweet.id);
+      }
+      await tweets.fetchNext();
     }
   }
 );
