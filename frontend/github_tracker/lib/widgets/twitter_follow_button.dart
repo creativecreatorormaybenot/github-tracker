@@ -27,7 +27,7 @@ class TwitterFollowButton extends StatelessWidget {
         return TextButton.icon(
           onPressed: followLink,
           style: TextButton.styleFrom(
-            primary: Colors.white,
+            foregroundColor: Colors.white,
             backgroundColor: const Color(0xff1d9bf0),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),

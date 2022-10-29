@@ -26,7 +26,7 @@ class GitHubRepoButton extends StatelessWidget {
         return TextButton.icon(
           onPressed: followLink,
           style: TextButton.styleFrom(
-            primary: Colors.white,
+            foregroundColor: Colors.white,
             backgroundColor: const Color(0xff333333),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
