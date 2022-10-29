@@ -9,8 +9,8 @@ import {
 
 initializeApp();
 
-exports['freeze-data'] = freezeDataFunction;
-exports['update-data'] = updateDataFunction;
-exports['backup-data'] = backupDataFunction;
-exports['post-monthly'] = postMonthlyFunction;
-exports['clean-up-tweets'] = cleanUpTweetsFunction;
+exports.freezedata = freezeDataFunction;
+exports.updatedata = updateDataFunction;
+exports.backupdata = backupDataFunction;
+exports.postmonthly = postMonthlyFunction;
+exports.cleanuptweets = cleanUpTweetsFunction;
