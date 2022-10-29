@@ -48,13 +48,17 @@ export const cleanUpTweetsFunction = schedule('0 0 1 * *').onRun(
       'tweet.fields': ['public_metrics'],
     });
     let count = 0;
-    for await (const [tweet, _] of paginator.fetchAndIterate()) {
-      count++;
-      if (tweet.public_metrics!.like_count > likesThreshold) continue;
-      console.info(
-        `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes.`
-      );
-      await twitter.v2.deleteTweet(tweet.id);
+    try {
+      for await (const [tweet, _] of paginator.fetchAndIterate()) {
+        count++;
+        if (tweet.public_metrics!.like_count > likesThreshold) continue;
+        console.info(
+          `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes.`
+        );
+        await twitter.v2.deleteTweet(tweet.id);
+      }
+    } catch (e) {
+      console.error(e);
     }
     console.info(`Iterated over ${count} tweets.`);
   }
