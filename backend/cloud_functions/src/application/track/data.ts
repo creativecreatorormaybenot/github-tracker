@@ -15,7 +15,7 @@ import {
   Timestamp,
   WriteBatch,
 } from 'firebase-admin/firestore';
-import { schedule } from 'firebase-functions/v1/pubsub';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { merge } from 'lodash';
 import numbro from 'numbro';
 import { TwitterApi } from 'twitter-api-v2';
@@ -124,230 +124,228 @@ function typedCollection<T>(path: string): CollectionReference<T> {
  * 2. Update the stats for the top 100 repos.
  * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
-export const updateDataFunction = schedule('*/15 * * * *').onRun(
-  async (context) => {
-    initializeFirestore();
-    await initializeTwitter();
-    const tweetManager = new TweetManager(twitter);
+export const updateDataFunction = onSchedule('*/15 * * * *', async (event) => {
+  initializeFirestore();
+  await initializeTwitter();
+  const tweetManager = new TweetManager(twitter);
 
-    // We could also use a Firestore server timestamp instead, however,
-    // we want to use the local timestamp here, so that it represents the
-    // precise time we made the search request.
-    const now = Timestamp.now();
+  // We could also use a Firestore server timestamp instead, however,
+  // we want to use the local timestamp here, so that it represents the
+  // precise time we made the search request.
+  const now = Timestamp.now();
 
-    // We need to make sure that we do not surpass the 500 operations write
-    // limit for batch writes. This is why we create a function for dynamically
-    // retrieving write batches.
-    // At this time, we have at least 100 writes for storing the repo data and 100
-    // updates for updating the stats data. However, we cannot know how many deletes
-    // we have (as the old data might be faulty). Furthermore, this approach ensures
-    // that we can add batch operations later on :)
-    const batches: WriteBatch[] = [];
-    let opIndex = 0;
-    function batch(): WriteBatch {
-      if (opIndex % 500 === 0) {
-        batches.push(firestore.batch());
-      }
-      opIndex++;
-
-      return batches[batches.length - 1];
+  // We need to make sure that we do not surpass the 500 operations write
+  // limit for batch writes. This is why we create a function for dynamically
+  // retrieving write batches.
+  // At this time, we have at least 100 writes for storing the repo data and 100
+  // updates for updating the stats data. However, we cannot know how many deletes
+  // we have (as the old data might be faulty). Furthermore, this approach ensures
+  // that we can add batch operations later on :)
+  const batches: WriteBatch[] = [];
+  let opIndex = 0;
+  function batch(): WriteBatch {
+    if (opIndex % 500 === 0) {
+      batches.push(firestore.batch());
     }
+    opIndex++;
 
-    const top100External = await fetchTop100External();
-    if (top100External === undefined) return;
+    return batches[batches.length - 1];
+  }
 
-    // We refer to the top100 retrieved from GitHub above as "external" as
-    // it uses a different data structure (interface) than the data that we
-    // end up saving to our database.
-    // Therefore, the "external" format is of type Repo and the "internal" format
-    // is of type "RepoData".
-    // Any data with a days ago suffix (e.g. 1day, 7day, and 28day) is implicitly
-    // considered "internal". This is because the only external data we can get is
-    // the *latest* data, i.e. the data as of right now. Any older data has to come
-    // from our database and is consequently internal.
-    const top100Internal: Array<RepoData> = [],
-      // Note that the order of the internal data from previous days is different from the
-      // external and internal current data in two ways:
-      // 1. It might contain undefined values as past data might not exist.
-      // 2. The order of the array elements does *not* represent the order of the repo
-      //    positions in that data. Instead, the order corresponds to the position order
-      //    (1 to 100) in the current internal or external data.
-      top100OneDay: Array<RepoData | undefined> = [],
-      top100SevenDay: Array<RepoData | undefined> = [],
-      top100TwentyEightDay: Array<RepoData | undefined> = [],
-      // We fetch the previous entries to catch repos reaching milestones, surpassing other
-      // repos, etc.
-      top100Previous: Array<RepoData | undefined> = [];
+  const top100External = await fetchTop100External();
+  if (top100External === undefined) return;
 
-    const batchingPromises: Array<Promise<any>> = [];
-    for (const repo of top100External) {
-      const dataCollection = firestore
-        .collection('repos')
-        // We use the repo ID because we want to make sure that we
-        // can handle repo name changes and owner changes.
-        .doc(repo.id.toString())
-        .collection('data')
-        .withConverter(snapshotConverter<RepoData>());
+  // We refer to the top100 retrieved from GitHub above as "external" as
+  // it uses a different data structure (interface) than the data that we
+  // end up saving to our database.
+  // Therefore, the "external" format is of type Repo and the "internal" format
+  // is of type "RepoData".
+  // Any data with a days ago suffix (e.g. 1day, 7day, and 28day) is implicitly
+  // considered "internal". This is because the only external data we can get is
+  // the *latest* data, i.e. the data as of right now. Any older data has to come
+  // from our database and is consequently internal.
+  const top100Internal: Array<RepoData> = [],
+    // Note that the order of the internal data from previous days is different from the
+    // external and internal current data in two ways:
+    // 1. It might contain undefined values as past data might not exist.
+    // 2. The order of the array elements does *not* represent the order of the repo
+    //    positions in that data. Instead, the order corresponds to the position order
+    //    (1 to 100) in the current internal or external data.
+    top100OneDay: Array<RepoData | undefined> = [],
+    top100SevenDay: Array<RepoData | undefined> = [],
+    top100TwentyEightDay: Array<RepoData | undefined> = [],
+    // We fetch the previous entries to catch repos reaching milestones, surpassing other
+    // repos, etc.
+    top100Previous: Array<RepoData | undefined> = [];
 
-      const data: RepoData = {
-        timestamp: now,
-        position: top100External.indexOf(repo) + 1,
-        id: repo.id,
-        name: repo.name,
-        full_name: repo.full_name,
-        description: repo.description,
-        language: repo.language,
-        html_url: repo.html_url,
-        stargazers_count: repo.stargazers_count,
-        open_issues_count: repo.open_issues_count,
-        forks_count: repo.forks_count,
-        owner: {
-          id: repo.owner!.id,
-          login: repo.owner!.login,
-          html_url: repo.owner!.html_url,
-          avatar_url: repo.owner!.avatar_url,
-        },
-      };
-      batch().create(dataCollection.doc(), data);
+  const batchingPromises: Array<Promise<any>> = [];
+  for (const repo of top100External) {
+    const dataCollection = firestore
+      .collection('repos')
+      // We use the repo ID because we want to make sure that we
+      // can handle repo name changes and owner changes.
+      .doc(repo.id.toString())
+      .collection('data')
+      .withConverter(snapshotConverter<RepoData>());
 
-      // Save the index for later in order to update the undefined
-      // entries in the 1day, 7day, and 28day arrays at the correct index.
-      // This is necessary as all of the past internal repo data is fetched
-      // in parallel, which means that we cannot trust the order they complete in
-      // at all (it is totally random).
-      const repoIndex = top100Internal.length;
-      top100Internal.push(data);
-      top100OneDay.push(undefined);
-      top100SevenDay.push(undefined);
-      top100TwentyEightDay.push(undefined);
-      top100Previous.push(undefined);
+    const data: RepoData = {
+      timestamp: now,
+      position: top100External.indexOf(repo) + 1,
+      id: repo.id,
+      name: repo.name,
+      full_name: repo.full_name,
+      description: repo.description,
+      language: repo.language,
+      html_url: repo.html_url,
+      stargazers_count: repo.stargazers_count,
+      open_issues_count: repo.open_issues_count,
+      forks_count: repo.forks_count,
+      owner: {
+        id: repo.owner!.id,
+        login: repo.owner!.login,
+        html_url: repo.owner!.html_url,
+        avatar_url: repo.owner!.avatar_url,
+      },
+    };
+    batch().create(dataCollection.doc(), data);
 
-      if (repoIndex !== data.position - 1) {
-        console.warn(
-          `Mismatch between repo index ${repoIndex} and repo position ${data.position} of repo ${data.full_name}.`
-        );
-      }
+    // Save the index for later in order to update the undefined
+    // entries in the 1day, 7day, and 28day arrays at the correct index.
+    // This is necessary as all of the past internal repo data is fetched
+    // in parallel, which means that we cannot trust the order they complete in
+    // at all (it is totally random).
+    const repoIndex = top100Internal.length;
+    top100Internal.push(data);
+    top100OneDay.push(undefined);
+    top100SevenDay.push(undefined);
+    top100TwentyEightDay.push(undefined);
+    top100Previous.push(undefined);
 
-      const statsPromise = Promise.all([
-        getDaysAgoDoc(dataCollection, now, 1),
-        getDaysAgoDoc(dataCollection, now, 7),
-        getDaysAgoDoc(dataCollection, now, 28),
-        getLatestDoc(dataCollection),
-      ]).then(async (snapshots) => {
-        const [one, seven, twentyEight, previous] = snapshots.map((snapshot) =>
-          snapshot?.data()
-        );
-
-        // Create a metadata subset of the repo data that we can include
-        // in the stats doc.
-        const metadata: RepoMetadata = merge(
-          {
-            owner: {
-              avatar_blurhash: await blurhashFromImage(data.owner.avatar_url),
-            },
-          },
-          data
-        );
-        delete metadata.position;
-        delete metadata.stargazers_count;
-
-        // Store stats data.
-        const statsData: StatsData = {
-          metadata,
-          latest: computeStatsSnapshot({
-            snapshotData: data,
-            latestData: data,
-          }),
-          ...(one === undefined
-            ? {}
-            : {
-                oneDay: computeStatsSnapshot({
-                  snapshotData: one,
-                  latestData: data,
-                }),
-              }),
-          ...(seven === undefined
-            ? {}
-            : {
-                sevenDay: computeStatsSnapshot({
-                  snapshotData: seven,
-                  latestData: data,
-                }),
-              }),
-          ...(twentyEight === undefined
-            ? {}
-            : {
-                twentyEightDay: computeStatsSnapshot({
-                  snapshotData: twentyEight,
-                  latestData: data,
-                }),
-              }),
-        };
-        batch().set(
-          typedCollection<StatsData>('stats').doc(`${repo.id}`),
-          statsData
-        );
-
-        top100OneDay[repoIndex] = one;
-        top100SevenDay[repoIndex] = seven;
-        top100TwentyEightDay[repoIndex] = twentyEight;
-        top100Previous[repoIndex] = previous;
-      });
-      batchingPromises.push(statsPromise);
-    }
-
-    // Batch removal of stats docs for repos that are not currently in the top 100.
-    batchingPromises.push(batchDeleteUnusedStatsDocs(top100External, batch));
-    // Run all the 400 document gets for the historical stats in parallel
-    // and not have the function timeout.
-    await Promise.all(batchingPromises);
-
-    if (!top100Internal.every((value) => value !== undefined)) {
+    if (repoIndex !== data.position - 1) {
       console.warn(
-        `Missing internal data (${top100Internal.filter(
-          (value) => value === undefined
-        )}).`
+        `Mismatch between repo index ${repoIndex} and repo position ${data.position} of repo ${data.full_name}.`
       );
     }
 
-    // Run all remaining actions in parallel, i.e. committing the batched operations (which
-    // might be in multiple batches that are limited to 500 ops) and our track functions.
-    await Promise.all([
-      // Save the internal data (both stats and repo data entries).
-      ...batches.map((b) => b.commit()),
-      // Excluding the tracking operations for the moment (see below).
-    ] as Promise<any>[]);
+    const statsPromise = Promise.all([
+      getDaysAgoDoc(dataCollection, now, 1),
+      getDaysAgoDoc(dataCollection, now, 7),
+      getDaysAgoDoc(dataCollection, now, 28),
+      getLatestDoc(dataCollection),
+    ]).then(async (snapshots) => {
+      const [one, seven, twentyEight, previous] = snapshots.map((snapshot) =>
+        snapshot?.data()
+      );
 
-    const trackingPromises: Array<Promise<any>> = [
-      trackTopRepo(top100External, top100Previous, tweetManager),
-    ];
-    // Add tracking operations for all of the top 100 repos individually.
-    for (let i = 0; i < top100External.length; i++) {
-      const repo = top100External[i],
-        current = top100Internal[i],
-        previous = top100Previous[i];
+      // Create a metadata subset of the repo data that we can include
+      // in the stats doc.
+      const metadata: RepoMetadata = merge(
+        {
+          owner: {
+            avatar_blurhash: await blurhashFromImage(data.owner.avatar_url),
+          },
+        },
+        data
+      );
+      delete metadata.position;
+      delete metadata.stargazers_count;
 
-      if (previous !== undefined) {
-        trackingPromises.push(
-          ...[
-            trackRepoMilestones(repo, previous, tweetManager),
-            trackRepoPosition({
-              current,
-              previous,
-              top100External,
-              tweetManager,
+      // Store stats data.
+      const statsData: StatsData = {
+        metadata,
+        latest: computeStatsSnapshot({
+          snapshotData: data,
+          latestData: data,
+        }),
+        ...(one === undefined
+          ? {}
+          : {
+              oneDay: computeStatsSnapshot({
+                snapshotData: one,
+                latestData: data,
+              }),
             }),
-          ]
-        );
-      }
-    }
-    // Run all tracking operations in parallel sequentially after the data operations.
-    await Promise.all(trackingPromises);
+        ...(seven === undefined
+          ? {}
+          : {
+              sevenDay: computeStatsSnapshot({
+                snapshotData: seven,
+                latestData: data,
+              }),
+            }),
+        ...(twentyEight === undefined
+          ? {}
+          : {
+              twentyEightDay: computeStatsSnapshot({
+                snapshotData: twentyEight,
+                latestData: data,
+              }),
+            }),
+      };
+      batch().set(
+        typedCollection<StatsData>('stats').doc(`${repo.id}`),
+        statsData
+      );
 
-    // Finally, tweet whatever tweet has the highest priority.
-    await tweetManager.tweet();
+      top100OneDay[repoIndex] = one;
+      top100SevenDay[repoIndex] = seven;
+      top100TwentyEightDay[repoIndex] = twentyEight;
+      top100Previous[repoIndex] = previous;
+    });
+    batchingPromises.push(statsPromise);
   }
-);
+
+  // Batch removal of stats docs for repos that are not currently in the top 100.
+  batchingPromises.push(batchDeleteUnusedStatsDocs(top100External, batch));
+  // Run all the 400 document gets for the historical stats in parallel
+  // and not have the function timeout.
+  await Promise.all(batchingPromises);
+
+  if (!top100Internal.every((value) => value !== undefined)) {
+    console.warn(
+      `Missing internal data (${top100Internal.filter(
+        (value) => value === undefined
+      )}).`
+    );
+  }
+
+  // Run all remaining actions in parallel, i.e. committing the batched operations (which
+  // might be in multiple batches that are limited to 500 ops) and our track functions.
+  await Promise.all([
+    // Save the internal data (both stats and repo data entries).
+    ...batches.map((b) => b.commit()),
+    // Excluding the tracking operations for the moment (see below).
+  ] as Promise<any>[]);
+
+  const trackingPromises: Array<Promise<any>> = [
+    trackTopRepo(top100External, top100Previous, tweetManager),
+  ];
+  // Add tracking operations for all of the top 100 repos individually.
+  for (let i = 0; i < top100External.length; i++) {
+    const repo = top100External[i],
+      current = top100Internal[i],
+      previous = top100Previous[i];
+
+    if (previous !== undefined) {
+      trackingPromises.push(
+        ...[
+          trackRepoMilestones(repo, previous, tweetManager),
+          trackRepoPosition({
+            current,
+            previous,
+            top100External,
+            tweetManager,
+          }),
+        ]
+      );
+    }
+  }
+  // Run all tracking operations in parallel sequentially after the data operations.
+  await Promise.all(trackingPromises);
+
+  // Finally, tweet whatever tweet has the highest priority.
+  await tweetManager.tweet();
+});
 
 /**
  * Makes the Twitter bot post the fastest growing repo of the month.
@@ -356,8 +354,9 @@ export const updateDataFunction = schedule('*/15 * * * *').onRun(
  * The function will only take action if the current day is the last day
  * of the particular month.
  */
-export const postMonthlyFunction = schedule('15 15 28-31 * *').onRun(
-  async (context) => {
+export const postMonthlyFunction = onSchedule(
+  '15 15 28-31 * *',
+  async (event) => {
     // https://bobbyhadz.com/blog/javascript-check-if-date-is-last-day-of-month#check-if-a-date-is-the-last-day-of-the-month-in-javascript
     function isLastDayOfMonth() {
       const date = new Date();

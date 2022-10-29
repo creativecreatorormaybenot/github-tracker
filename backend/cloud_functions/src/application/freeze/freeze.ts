@@ -1,6 +1,6 @@
 import { getFirestore, Timestamp, WriteBatch } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import { schedule } from 'firebase-functions/v1/pubsub';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 
 const bucket = 'gs://github-tracker-freezer';
 
@@ -12,7 +12,7 @@ export const freezeDataFunction =
   // We do this in order to reduce the cost of backing up the Firestore
   // data every week.
   // This runs so frequently because we want to keep the JSON files small.
-  schedule('0 */3 * * *').onRun(async (context) => {
+  onSchedule('0 */3 * * *', async (event) => {
     const firestore = getFirestore();
     const storage = getStorage();
     const snapshot = await firestore

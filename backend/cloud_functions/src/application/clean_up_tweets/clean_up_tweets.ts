@@ -1,5 +1,5 @@
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { schedule } from 'firebase-functions/v1/pubsub';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { TwitterApi } from 'twitter-api-v2';
 import { SecretsAccessor } from '../../infrastructure/secrets';
 
@@ -19,8 +19,9 @@ const likesThreshold = 3;
  *
  * The function is currently triggered on every 9th day of the month.
  */
-export const cleanUpTweetsFunction = schedule('0 0 */9 * *').onRun(
-  async (context) => {
+export const cleanUpTweetsFunction = onSchedule(
+  '0 0 */9 * *',
+  async (event) => {
     // Load the Twitter client asynchronously on cold start.
     // The reason we have to do this is in order to ensure that
     // the client is loaded before execution as it depends on secrets
