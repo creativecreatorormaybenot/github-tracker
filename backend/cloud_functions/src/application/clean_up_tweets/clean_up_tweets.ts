@@ -43,6 +43,8 @@ export const cleanUpTweetsFunction = schedule('0 0 1 * *').onRun(
     date.setDate(date.getDate() - 8);
 
     const tweets = await twitter.v2.userTimeline('1363301907033444353', {
+      max_results: 100,
+      end_time: date.toISOString(),
       'tweet.fields': ['public_metrics'],
     });
     while (tweets.tweets.length > 0) {
@@ -54,7 +56,7 @@ export const cleanUpTweetsFunction = schedule('0 0 1 * *').onRun(
         );
         await twitter.v2.deleteTweet(tweet.id);
       }
-      await tweets.fetchNext();
+      await tweets.fetchNext(100);
     }
   }
 );
