@@ -21,7 +21,7 @@ dependencies:
 
   # Model definitions
   freezed_annotation: ^2.2.0
-  json_annotation: ^4.6.0 # Transitive dependency of freezed_annotation (added for transparency).
+  json_annotation: ^4.7.0
 
   # i18n
   intl: ^0.17.0
@@ -43,6 +43,7 @@ dev_dependencies:
   # Code generation (flutter pub run build_runner build)
   build_runner: ^2.3.2
   freezed: ^2.2.1
+  json_serializable: ^6.5.4
 
 flutter:
   uses-material-design: true
