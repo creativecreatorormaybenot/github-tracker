@@ -1,6 +1,6 @@
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { schedule } from 'firebase-functions/v1/pubsub';
-import { TwitterApi } from 'twitter-api-v2';
+import { ApiResponseError, TwitterApi } from 'twitter-api-v2';
 import { SecretsAccessor } from '../../infrastructure/secrets';
 
 const secretManager = new SecretManagerServiceClient();
@@ -47,7 +47,8 @@ export const cleanUpTweetsFunction = schedule('0 0 1 * *').onRun(
       end_time: date.toISOString(),
       'tweet.fields': ['public_metrics'],
     });
-    let count = 0;
+    let count = 0,
+      deleted = 0;
     try {
       for await (const [tweet, _] of paginator.fetchAndIterate()) {
         count++;
@@ -56,10 +57,13 @@ export const cleanUpTweetsFunction = schedule('0 0 1 * *').onRun(
           `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes.`
         );
         await twitter.v2.deleteTweet(tweet.id);
+        deleted++;
       }
     } catch (e) {
-      console.error(e);
+      if (e instanceof ApiResponseError) {
+        console.error(e.message);
+      }
     }
-    console.info(`Iterated over ${count} tweets.`);
+    console.info(`Deleted ${deleted}/${count} tweets.`);
   }
 );
