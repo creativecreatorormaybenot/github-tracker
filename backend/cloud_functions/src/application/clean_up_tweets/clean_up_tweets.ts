@@ -142,7 +142,7 @@ async function catchApiResponseError(e: ApiResponseError): Promise<void> {
   const retryDate = new Date(rateLimit.reset * 1000);
   console.warn(
     loggingTag,
-    'Twitter API rate limit was reached ',
+    'Twitter API rate limit has been reached ',
     `(0/${rateLimit.limit} requests remaining). `,
     `Retrying request at ${retryDate.toISOString()}.`
   );
