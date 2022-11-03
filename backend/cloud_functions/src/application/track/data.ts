@@ -2,7 +2,7 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { Octokit } from '@octokit/rest';
 import {
   Endpoints,
-  GetResponseDataTypeFromEndpointMethod,
+  GetResponseDataTypeFromEndpointMethod
 } from '@octokit/types';
 import {
   CollectionReference,
@@ -13,7 +13,7 @@ import {
   getFirestore,
   QueryDocumentSnapshot,
   Timestamp,
-  WriteBatch,
+  WriteBatch
 } from 'firebase-admin/firestore';
 import { schedule } from 'firebase-functions/v1/pubsub';
 import { merge } from 'lodash';
@@ -365,7 +365,13 @@ export const postMonthlyFunction = schedule('15 15 28-31 * *').onRun(
       return new Date(date.getTime() + oneDayInMs).getDate() === 1;
     }
     // Early exit if the function was not triggered on the last day of the month.
-    if (!isLastDayOfMonth()) return;
+    if (!isLastDayOfMonth()) {
+      console.info(
+        `Not posting about the fastest growing repo of the month as today ${new Date().toISOString()} ` +
+          'is not the last of the month.'
+      );
+      return;
+    }
 
     initializeFirestore();
     await initializeTwitter();
