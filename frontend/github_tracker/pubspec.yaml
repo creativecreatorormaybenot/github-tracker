@@ -4,29 +4,30 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: '>=2.15.0 <3.0.0'
-  flutter: '>=2.8.0'
+  sdk: '>=2.18.0 <3.0.0'
+  flutter: '>=3.3.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
   # State management
-  flutter_riverpod: ^1.0.4
+  flutter_riverpod: ^2.0.2
 
   # Firebase
-  cloud_firestore: ^3.2.1
-  firebase_auth: ^3.4.1
+  firebase_core: ^2.1.1
+  firebase_auth: ^4.1.0
+  cloud_firestore: ^4.0.3
 
   # Model definitions
-  freezed_annotation: ^2.0.3
-  json_annotation: ^4.6.0 # Transitive dependency of freezed_annotation (added for transparency).
+  freezed_annotation: ^2.2.0
+  json_annotation: ^4.7.0
 
   # i18n
   intl: ^0.17.0
 
   # Platform utilities
-  url_launcher: ^6.1.4
+  url_launcher: ^6.1.6
   url_strategy: ^0.2.0
 
   # UI
@@ -40,9 +41,9 @@ dev_dependencies:
   flutter_lints: ^2.0.1
 
   # Code generation (flutter pub run build_runner build)
-  build_runner: ^2.1.11
-  freezed: ^2.0.5
-  json_serializable: ^6.2.0 # Transitive dependency of freezed (added for transparency).
+  build_runner: ^2.3.2
+  freezed: ^2.2.1
+  json_serializable: ^6.5.4
 
 flutter:
   uses-material-design: true

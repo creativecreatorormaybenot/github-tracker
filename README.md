@@ -2,11 +2,6 @@
 
 Tracking the top 100 GitHub software repos.
 
-## ON HOLD
-
-The project is currently **on hold**. I am aware that the app is not running properly at this time.  
-I will fix it whenever I see value in it. If you would like to see this fixed, you can ping me [@creativemaybeno][creativemaybeno twitter].
-
 ## Web app [![GitHub Tracker web app][github tracker web app shield]][github tracker web app]
 
 The heart of GitHub Tracker is the **Flutter web app** at

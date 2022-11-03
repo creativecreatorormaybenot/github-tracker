@@ -1,11 +1,16 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:github_tracker/data/html/loader.dart';
+import 'package:github_tracker/firebase_options.dart';
 import 'package:github_tracker/widgets/app.dart';
 import 'package:url_strategy/url_strategy.dart';
 
-void main() {
+void main() async {
   setPathUrlStrategy();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const App());
   _binding!.addPostFrameCallback((_) {
     // Only remove the loader after the initial frame.

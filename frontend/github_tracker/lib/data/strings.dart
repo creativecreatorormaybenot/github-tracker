@@ -67,9 +67,15 @@ class Strings {
 
   // -------------------------- Twitter follow button --------------------------
 
-  /// Button label for Twitter follow buttons.
-  static String twitterFollowButtonLabel(String username) =>
-      'Follow @$username';
+  /// Button text for Twitter follow buttons.
+  static String twitterFollowButton(String label, String username) =>
+      'Follow $label (@$username)';
+
+  /// Label on the @github_tracker Twitter follow button.
+  static const twitterFollowGhtLabel = 'to be updated';
+
+  /// Label on the @creativemaybeno Twitter follow button.
+  static const twitterFollowCmnLabel = 'for more creations';
 
   // ------------------------------- Error code --------------------------------
 

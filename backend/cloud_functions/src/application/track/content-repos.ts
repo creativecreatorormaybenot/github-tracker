@@ -40,7 +40,7 @@ export const contentRepos: Array<string> = [
   'ossu/computer-science',
   'NARKOZ/hacker-scripts',
   'papers-we-love/papers-we-love',
-  'danistefanovic/build-your-own-x',
+  'codecrafters-io/build-your-own-x',
   'thedaviddias/Front-End-Checklist',
   'Trinea/android-open-project',
   'donnemartin/system-design-primer',
@@ -96,4 +96,5 @@ export const contentRepos: Array<string> = [
   'leonardomso/33-js-concepts',
   'sdmg15/Best-websites-a-programmer-should-visit',
   'practical-tutorials/project-based-learning',
-]
+  'GrowingGit/GitHub-Chinese-Top-Charts',
+];

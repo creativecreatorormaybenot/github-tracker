@@ -1,206 +1,129 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <!--
-      If you are serving your web app in a path other than the root, change the
-      href value below to reflect the base path you are serving from.
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
 
-      The path provided below has to start and end with a slash "/" in order for
-      it to work correctly.
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
 
-      Fore more details:
-      * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-    -->
-    <base href="/" />
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
 
-    <meta charset="UTF-8" />
-    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
 
-    <!-- iOS meta tags & icons -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="GitHub Tracker" />
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
 
-    <!-- Generic icons -->
-    <link rel="icon" href="/icons/icon_32.png" sizes="32x32" />
-    <link rel="icon" href="/icons/icon_57.png" sizes="57x57" />
-    <link rel="icon" href="/icons/icon_76.png" sizes="76x76" />
-    <link rel="icon" href="/icons/icon_96.png" sizes="96x96" />
-    <link rel="icon" href="/icons/icon_128.png" sizes="128x128" />
-    <link rel="icon" href="/icons/icon_192.png" sizes="192x192" />
+  <!-- Generic icons -->
+  <link rel="icon" href="/icons/icon_32.png" sizes="32x32" />
+  <link rel="icon" href="/icons/icon_57.png" sizes="57x57" />
+  <link rel="icon" href="/icons/icon_76.png" sizes="76x76" />
+  <link rel="icon" href="/icons/icon_96.png" sizes="96x96" />
+  <link rel="icon" href="/icons/icon_128.png" sizes="128x128" />
+  <link rel="icon" href="/icons/icon_192.png" sizes="192x192" />
 
-    <!-- Android icon -->
-    <link rel="shortcut icon" href="/icons/icon_196.png" sizes="196x196" />
+  <!-- Android icon -->
+  <link rel="shortcut icon" href="/icons/icon_196.png" sizes="196x196" />
 
-    <!-- iOS icons -->
-    <link rel="apple-touch-icon" href="/icons/icon_120.png" sizes="120x120" />
-    <link rel="apple-touch-icon" href="/icons/icon_152.png" sizes="152x152" />
-    <link rel="apple-touch-icon" href="/icons/icon_180.png" sizes="180x180" />
+  <!-- iOS icons -->
+  <link rel="apple-touch-icon" href="/icons/icon_120.png" sizes="120x120" />
+  <link rel="apple-touch-icon" href="/icons/icon_152.png" sizes="152x152" />
+  <link rel="apple-touch-icon" href="/icons/icon_180.png" sizes="180x180" />
 
-    <!-- Open Graph tags -->
-    <meta
-      property="og:image"
-      content="https://github-tracker.creativemaybeno.dev/og/github_tracker_logo.png"
-    />
-    <meta property="og:url" content="https://ght.creativemaybeno.dev">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="GitHub Tracker">
-    <meta property="og:description" content="Tracking the top 100 GitHub software repos (ght).">
-    <meta property="og:image" content="https://github-tracker.creativemaybeno.dev/og/github_tracker_logo.png">
+  <!-- Open Graph tags -->
+  <meta
+    property="og:image"
+    content="https://github-tracker.creativemaybeno.dev/og/github_tracker_logo.png"
+  />
+  <meta property="og:url" content="https://ght.creativemaybeno.dev">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="GitHub Tracker">
+  <meta property="og:description" content="Tracking the top 100 GitHub software repos (ght).">
+  <meta property="og:image" content="https://github-tracker.creativemaybeno.dev/og/github_tracker_logo.png">
 
-    <!-- Twitter Meta Tags -->
-    <meta name="twitter:card" content="summary">
-    <meta property="twitter:domain" content="ght.creativemaybeno.dev">
-    <meta property="twitter:url" content="https://ght.creativemaybeno.dev">
-    <meta name="twitter:title" content="GitHub Tracker">
-    <meta name="twitter:description" content="Tracking the top 100 GitHub software repos (ght).">
-    <meta name="twitter:image" content="https://github-tracker.creativemaybeno.dev/og/github_tracker_logo.png">
-    <meta name="twitter:site" content="@github_tracker">
-    <meta name="twitter:creator" content="@creativemaybeno">
+  <!-- Twitter Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta property="twitter:domain" content="ght.creativemaybeno.dev">
+  <meta property="twitter:url" content="https://ght.creativemaybeno.dev">
+  <meta name="twitter:title" content="GitHub Tracker">
+  <meta name="twitter:description" content="Tracking the top 100 GitHub software repos (ght).">
+  <meta name="twitter:image" content="https://github-tracker.creativemaybeno.dev/og/github_tracker_logo.png">
+  <meta name="twitter:site" content="@github_tracker">
+  <meta name="twitter:creator" content="@creativemaybeno">
 
-    <title>GitHub Tracker</title>
-    <link rel="manifest" href="manifest.json" />
+  <title>GitHub Tracker</title>
+  <link rel="manifest" href="manifest.json">
 
-    <style>
-      .loader {
-        overflow: auto;
-        margin: auto;
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        width: 11%;
-        animation: rotation 2s infinite;
+  <style>
+    .loader {
+      overflow: auto;
+      margin: auto;
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      width: 11%;
+      animation: rotation 2s infinite;
+    }
+
+    @keyframes rotation {
+      from {
+        transform: rotate(360deg);
       }
 
-      @keyframes rotation {
-        from {
-          transform: rotate(360deg);
+      to {
+        transform: rotate(0deg);
+      }
+    }
+
+    .infinite {
+      animation-iteration-count: infinite;
+    }
+  </style>
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    var serviceWorkerVersion = null;
+  </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+</head>
+<body>
+  <!--
+    Image that is shown as a loading icon before Flutter is initialized. It
+    rotates via a CSS animation defined in the head.
+  -->
+  <img id="ghtldr" src="/icons/icon_256.png" class="loader" />
+
+  <script>
+    // This prevents zooming in using CTRL + mouse wheel.
+    // See https://stackoverflow.com/a/67039291/6509751.
+    document.addEventListener('wheel', function(e) {
+      e.ctrlKey && e.preventDefault();
+    }, {
+      passive: false,
+    });
+  </script>
+
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
         }
-
-        to {
-          transform: rotate(0deg);
-        }
-      }
-
-      .infinite {
-        animation-iteration-count: infinite;
-      }
-    </style>
-  </head>
-
-  <body>
-    <!--
-      Image that is shown as a loading icon before Flutter is initialized. It
-      rotates via a CSS animation defined in the head.
-    -->
-    <img id="ghtldr" src="/icons/icon_256.png" class="loader" />
-
-    <!-- Firebase dependencies -->
-    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-app.js"></script>
-    <script>
-      var firebaseConfig = {
-        apiKey: "AIzaSyAM2jcS_p9NS5RZxafTkzA79k2z2cna9q8",
-        authDomain: "github-tracker-b5c54.firebaseapp.com",
-        databaseURL: "https://github-tracker-b5c54.firebaseio.com",
-        projectId: "github-tracker-b5c54",
-        storageBucket: "github-tracker-b5c54.appspot.com",
-        messagingSenderId: "430160758592",
-        appId: "1:430160758592:web:d46f583014803797419ca5"
-      };
-      firebase.initializeApp(firebaseConfig);
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-firestore.js"></script>
-    <script>
-      // Calling the current user here ensures that inside of the Flutter app,
-      // the signed in state will immediately be synced (for some reason).
-      // This ensures that we do not have to display a loader for subsequent
-      // sessions.
-      firebase.auth().currentUser;
-    </script>
-
-    <script>
-      // This prevents zooming in using CTRL + mouse wheel.
-      // See https://stackoverflow.com/a/67039291/6509751.
-      document.addEventListener('wheel', function(e) {
-        e.ctrlKey && e.preventDefault();
-      }, {
-        passive: false,
+      }).then(function(engineInitializer) {
+        return engineInitializer.initializeEngine();
+      }).then(function(appRunner) {
+        return appRunner.runApp();
       });
-    </script>
-
-    <!--
-      This script installs service_worker.js to provide PWA functionality to
-      application.
-
-      For more information, see:
-      * https://developers.google.com/web/fundamentals/primers/service-workers
-    -->
-    <script>
-      var serviceWorkerVersion = null
-      var scriptLoaded = false
-      function loadMainDartJs() {
-        if (scriptLoaded) {
-          return
-        }
-        scriptLoaded = true
-        var scriptTag = document.createElement('script')
-        scriptTag.src = 'main.dart.js'
-        scriptTag.type = 'application/javascript'
-        document.body.append(scriptTag)
-      }
-
-      if ('serviceWorker' in navigator) {
-        // Service workers are supported. Use them.
-        window.addEventListener('load', function () {
-          // Wait for registration to finish before dropping the <script> tag.
-          // Otherwise, the browser will load the script multiple times,
-          // potentially different versions.
-          var serviceWorkerUrl =
-            'flutter_service_worker.js?v=' + serviceWorkerVersion
-          navigator.serviceWorker.register(serviceWorkerUrl).then((reg) => {
-            function waitForActivation(serviceWorker) {
-              serviceWorker.addEventListener('statechange', () => {
-                if (serviceWorker.state == 'activated') {
-                  console.log('Installed new service worker.')
-                  loadMainDartJs()
-                }
-              })
-            }
-            if (!reg.active && (reg.installing || reg.waiting)) {
-              // No active web worker and we have installed or are installing
-              // one for the first time. Simply wait for it to activate.
-              waitForActivation(reg.installing ?? reg.waiting)
-            } else if (!reg.active.scriptURL.endsWith(serviceWorkerVersion)) {
-              // When the app updates the serviceWorkerVersion changes, so we
-              // need to ask the service worker to update.
-              console.log('New service worker available.')
-              reg.update()
-              waitForActivation(reg.installing)
-            } else {
-              // Existing service worker is still good.
-              console.log('Loading app from service worker.')
-              loadMainDartJs()
-            }
-          })
-
-          // If service worker doesn't succeed in a reasonable amount of time,
-          // fallback to plaint <script> tag.
-          setTimeout(() => {
-            if (!scriptLoaded) {
-              console.warn(
-                'Failed to load app from service worker. Falling back to plain <script> tag.'
-              )
-              loadMainDartJs()
-            }
-          }, 4000)
-        })
-      } else {
-        // Service workers not supported. Just drop the <script> tag.
-        loadMainDartJs()
-      }
-    </script>
-  </body>
+    });
+  </script>
+</body>
 </html>

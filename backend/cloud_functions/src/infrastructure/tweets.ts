@@ -1,12 +1,12 @@
-import Twitter from 'twitter-lite'
+import { TwitterApi } from 'twitter-api-v2';
 
 export class TweetManager {
-  protected tweets: Tweet[]
-  protected twitter: Twitter
+  protected tweets: Tweet[];
+  protected twitter: TwitterApi;
 
-  constructor(twitter: Twitter) {
-    this.tweets = []
-    this.twitter = twitter
+  constructor(twitter: TwitterApi) {
+    this.tweets = [];
+    this.twitter = twitter;
   }
 
   /**
@@ -14,7 +14,7 @@ export class TweetManager {
    * @param tweet the tweet to be added.
    */
   addTweet(tweet: Tweet): void {
-    this.tweets.push(tweet)
+    this.tweets.push(tweet);
   }
 
   /**
@@ -23,13 +23,11 @@ export class TweetManager {
    * the first tweet and posts it if there is one.
    */
   async tweet(): Promise<void> {
-    this.tweets.sort((a, b) => a.priority - b.priority)
+    this.tweets.sort((a, b) => a.priority - b.priority);
 
-    const tweet = this.tweets.shift()
-    if (tweet === undefined) return
-    await this.twitter.post('statuses/update', {
-      status: tweet.content,
-    })
+    const tweet = this.tweets.shift();
+    if (tweet === undefined) return;
+    await this.twitter.v1.tweet(tweet.content);
   }
 }
 
@@ -39,17 +37,17 @@ export class Tweet {
    *
    * This is the status of the tweet.
    */
-  readonly content: string
+  readonly content: string;
 
   /**
    * The priority of the tweet where lower numbers are higher priority.
    *
    * The tweet with the lowest priority will be tweeted first.
    */
-  readonly priority: number
+  readonly priority: number;
 
   constructor(content: string, priority: number) {
-    this.content = content
-    this.priority = priority
+    this.content = content;
+    this.priority = priority;
   }
 }

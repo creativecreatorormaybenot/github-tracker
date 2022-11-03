@@ -47,10 +47,12 @@ class App extends StatelessWidget {
                         bottom: 8,
                       ),
                       child: TwitterFollowButton(
+                        label: Strings.twitterFollowGhtLabel,
                         username: 'github_tracker',
                       ),
                     ),
                     TwitterFollowButton(
+                      label: Strings.twitterFollowCmnLabel,
                       username: 'creativemaybeno',
                     ),
                   ],

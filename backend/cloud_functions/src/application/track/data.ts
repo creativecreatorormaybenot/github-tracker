@@ -1,56 +1,69 @@
-import * as functions from 'firebase-functions'
-import * as admin from 'firebase-admin'
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
-import { Octokit } from '@octokit/rest'
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { Octokit } from '@octokit/rest';
 import {
   Endpoints,
   GetResponseDataTypeFromEndpointMethod,
-} from '@octokit/types'
-import Twitter, { TwitterOptions } from 'twitter-lite'
-import numbro from 'numbro'
-import { merge } from 'lodash'
-import { contentRepos } from './content-repos'
-import { milestones } from './milestones'
-import { blurhashFromImage } from './blurhash'
-import { TweetManager, Tweet } from './tweets'
+} from '@octokit/types';
+import {
+  CollectionReference,
+  DocumentData,
+  DocumentSnapshot,
+  Firestore,
+  FirestoreDataConverter,
+  getFirestore,
+  QueryDocumentSnapshot,
+  Timestamp,
+  WriteBatch,
+} from 'firebase-admin/firestore';
+import { schedule } from 'firebase-functions/v1/pubsub';
+import { merge } from 'lodash';
+import numbro from 'numbro';
+import { TwitterApi } from 'twitter-api-v2';
+import { blurhashFromImage } from '../../infrastructure/blurhash';
+import { SecretsAccessor } from '../../infrastructure/secrets';
+import { Tweet, TweetManager } from '../../infrastructure/tweets';
+import { contentRepos } from './content-repos';
+import { milestones } from './milestones';
 
 // Initialize clients that can be initialized synchronously.
-const octokit = new Octokit()
-const firestore = admin.firestore()
-const secretManager = new SecretManagerServiceClient()
-// The Twitter client is initialized asynchronously in the update function
-// in order to keep the async code in there and ensure initialization has
-// completed.
-let twitter: Twitter
+const octokit = new Octokit();
+// Initialize Firestore only after the first function call because
+// getFirestore() must not be accessed before initializeApp().
+let firestore: Firestore;
+const secretManager = new SecretManagerServiceClient();
+// The Twitter client is initialized asynchronously in in order to keep the
+// async code in there and ensure initialization has completed.
+// See initializeTwitter() below.
+let twitter: TwitterApi;
 
 type Repo = GetResponseDataTypeFromEndpointMethod<
   typeof octokit.search.repos
->['items'][0]
+>['items'][0];
 
 interface RepoData {
-  timestamp: admin.firestore.Timestamp
-  position: number
-  id: number
-  name: string
-  full_name: string
-  description: string | null
-  language: string | null
-  html_url: string
-  stargazers_count: number
-  open_issues_count: number
-  forks_count: number
+  timestamp: Timestamp;
+  position: number;
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  language: string | null;
+  html_url: string;
+  stargazers_count: number;
+  open_issues_count: number;
+  forks_count: number;
   owner: {
-    id: number
-    login: string
-    html_url: string
-    avatar_url: string
-  }
+    id: number;
+    login: string;
+    html_url: string;
+    avatar_url: string;
+  };
 }
 
 interface AdditionalMetadata {
   owner: {
-    avatar_blurhash: string
-  }
+    avatar_blurhash: string;
+  };
 }
 
 /**
@@ -71,52 +84,36 @@ type RepoMetadata = Pick<
   | 'forks_count'
 > &
   Partial<RepoData> &
-  AdditionalMetadata
+  AdditionalMetadata;
 
 interface StatsSnapshot {
-  position: number
-  stars: number
-  positionChange: number
-  starsChange: number
+  position: number;
+  stars: number;
+  positionChange: number;
+  starsChange: number;
 }
 
 interface StatsData {
-  metadata: RepoMetadata
-  latest: StatsSnapshot
-  oneDay?: StatsSnapshot
-  sevenDay?: StatsSnapshot
-  twentyEightDay?: StatsSnapshot
+  metadata: RepoMetadata;
+  latest: StatsSnapshot;
+  oneDay?: StatsSnapshot;
+  sevenDay?: StatsSnapshot;
+  twentyEightDay?: StatsSnapshot;
 }
 
-function snapshotConverter<T>(): admin.firestore.FirestoreDataConverter<T> {
+function snapshotConverter<T>(): FirestoreDataConverter<T> {
   return {
-    toFirestore(data: T): admin.firestore.DocumentData {
-      return data
+    toFirestore(data: T): DocumentData {
+      return data as DocumentData;
     },
-    fromFirestore(snapshot: admin.firestore.QueryDocumentSnapshot): T {
-      return snapshot.data() as T
+    fromFirestore(snapshot: QueryDocumentSnapshot): T {
+      return snapshot.data() as T;
     },
-  }
+  };
 }
 
-function typedCollection<T>(
-  path: string
-): admin.firestore.CollectionReference<T> {
-  return firestore.collection(path).withConverter(snapshotConverter<T>())
-}
-
-/**
- * Accesses a secret manager secret.
- * @param name the name of the secret in Google Cloud Secret Manager.
- * @returns the payload of the secret.
- */
-async function accessSecret(name: string): Promise<string> {
-  const [accessResponse] = await secretManager.accessSecretVersion({
-    name: `projects/github-tracker-b5c54/secrets/${name}/versions/latest`,
-  })
-
-  const responsePayload = accessResponse.payload!.data!.toString()
-  return responsePayload
+function typedCollection<T>(path: string): CollectionReference<T> {
+  return firestore.collection(path).withConverter(snapshotConverter<T>());
 }
 
 /**
@@ -127,31 +124,16 @@ async function accessSecret(name: string): Promise<string> {
  * 2. Update the stats for the top 100 repos.
  * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
-export const update = functions.pubsub
-  .schedule('*/15 * * * *')
-  .onRun(async (context) => {
-    // Load the Twitter client asynchronously on cold start.
-    // The reason we have to do this is in order to ensure that
-    // the client is loaded before execution as it depends on secrets
-    // that can only be loaded asynchronously from secret manager.
-    if (twitter === undefined) {
-      const config: TwitterOptions = {
-        consumer_key: await accessSecret('TWITTER_APP_CONSUMER_KEY'),
-        consumer_secret: await accessSecret('TWITTER_APP_CONSUMER_KEY_SECRET'),
-        access_token_key: await accessSecret('TWITTER_APP_ACCESS_TOKEN'),
-        access_token_secret: await accessSecret(
-          'TWITTER_APP_ACCESS_TOKEN_SECRET'
-        ),
-      }
-      twitter = new Twitter(config)
-    }
-
-    const tweetManager = new TweetManager(twitter)
+export const updateDataFunction = schedule('*/15 * * * *').onRun(
+  async (context) => {
+    initializeFirestore();
+    await initializeTwitter();
+    const tweetManager = new TweetManager(twitter);
 
     // We could also use a Firestore server timestamp instead, however,
     // we want to use the local timestamp here, so that it represents the
     // precise time we made the search request.
-    const now = admin.firestore.Timestamp.now()
+    const now = Timestamp.now();
 
     // We need to make sure that we do not surpass the 500 operations write
     // limit for batch writes. This is why we create a function for dynamically
@@ -160,45 +142,19 @@ export const update = functions.pubsub
     // updates for updating the stats data. However, we cannot know how many deletes
     // we have (as the old data might be faulty). Furthermore, this approach ensures
     // that we can add batch operations later on :)
-    const batches: admin.firestore.WriteBatch[] = []
-    let opIndex = 0
-    function batch(): admin.firestore.WriteBatch {
+    const batches: WriteBatch[] = [];
+    let opIndex = 0;
+    function batch(): WriteBatch {
       if (opIndex % 500 === 0) {
-        batches.push(firestore.batch())
+        batches.push(firestore.batch());
       }
-      opIndex++
+      opIndex++;
 
-      return batches[batches.length - 1]
+      return batches[batches.length - 1];
     }
 
-    // 32986 is the precise amount of stars that exactly only 200 repos
-    // had achieved at the time I wrote this code. There were 201 repos
-    // that had achieved 32986 stars.
-    // We fetch the top 200 repos to get the top 100 software repos because
-    // we assume that less than half of the repos are content repos.
-    const q = 'stars:>32986',
-      sort = 'stars',
-      per_page = 100
-    const params: Endpoints['GET /search/repositories']['parameters'] = {
-      q,
-      sort,
-      per_page,
-    }
-    // We assume that the requests are successful and do not care about any
-    // other information that comes with the response.
-    let repos: Array<Repo> = []
-    params.page = 1
-    repos = repos.concat((await octokit.search.repos(params)).data.items)
-    params.page = 2
-    repos = repos.concat((await octokit.search.repos(params)).data.items)
-
-    const softwareRepos = repos.filter(
-        (repo) => !contentRepos.includes(repo.full_name)
-      ),
-      top100External = softwareRepos.slice(0, 100)
-
-    // Make sure to exit early if the integrity of the retrieved data cannot be confirmed.
-    if (!checkTop100Integrity(top100External)) return
+    const top100External = await fetchTop100External();
+    if (top100External === undefined) return;
 
     // We refer to the top100 retrieved from GitHub above as "external" as
     // it uses a different data structure (interface) than the data that we
@@ -221,9 +177,9 @@ export const update = functions.pubsub
       top100TwentyEightDay: Array<RepoData | undefined> = [],
       // We fetch the previous entries to catch repos reaching milestones, surpassing other
       // repos, etc.
-      top100Previous: Array<RepoData | undefined> = []
+      top100Previous: Array<RepoData | undefined> = [];
 
-    const batchingPromises: Array<Promise<any>> = []
+    const batchingPromises: Array<Promise<any>> = [];
     for (const repo of top100External) {
       const dataCollection = firestore
         .collection('repos')
@@ -231,7 +187,7 @@ export const update = functions.pubsub
         // can handle repo name changes and owner changes.
         .doc(repo.id.toString())
         .collection('data')
-        .withConverter(snapshotConverter<RepoData>())
+        .withConverter(snapshotConverter<RepoData>());
 
       const data: RepoData = {
         timestamp: now,
@@ -251,25 +207,25 @@ export const update = functions.pubsub
           html_url: repo.owner!.html_url,
           avatar_url: repo.owner!.avatar_url,
         },
-      }
-      batch().create(dataCollection.doc(), data)
+      };
+      batch().create(dataCollection.doc(), data);
 
       // Save the index for later in order to update the undefined
       // entries in the 1day, 7day, and 28day arrays at the correct index.
       // This is necessary as all of the past internal repo data is fetched
       // in parallel, which means that we cannot trust the order they complete in
       // at all (it is totally random).
-      const repoIndex = top100Internal.length
-      top100Internal.push(data)
-      top100OneDay.push(undefined)
-      top100SevenDay.push(undefined)
-      top100TwentyEightDay.push(undefined)
-      top100Previous.push(undefined)
+      const repoIndex = top100Internal.length;
+      top100Internal.push(data);
+      top100OneDay.push(undefined);
+      top100SevenDay.push(undefined);
+      top100TwentyEightDay.push(undefined);
+      top100Previous.push(undefined);
 
       if (repoIndex !== data.position - 1) {
-        functions.logger.warn(
+        console.warn(
           `Mismatch between repo index ${repoIndex} and repo position ${data.position} of repo ${data.full_name}.`
-        )
+        );
       }
 
       const statsPromise = Promise.all([
@@ -280,7 +236,7 @@ export const update = functions.pubsub
       ]).then(async (snapshots) => {
         const [one, seven, twentyEight, previous] = snapshots.map((snapshot) =>
           snapshot?.data()
-        )
+        );
 
         // Create a metadata subset of the repo data that we can include
         // in the stats doc.
@@ -291,9 +247,9 @@ export const update = functions.pubsub
             },
           },
           data
-        )
-        delete metadata.position
-        delete metadata.stargazers_count
+        );
+        delete metadata.position;
+        delete metadata.stargazers_count;
 
         // Store stats data.
         const statsData: StatsData = {
@@ -326,32 +282,32 @@ export const update = functions.pubsub
                   latestData: data,
                 }),
               }),
-        }
+        };
         batch().set(
           typedCollection<StatsData>('stats').doc(`${repo.id}`),
           statsData
-        )
+        );
 
-        top100OneDay[repoIndex] = one
-        top100SevenDay[repoIndex] = seven
-        top100TwentyEightDay[repoIndex] = twentyEight
-        top100Previous[repoIndex] = previous
-      })
-      batchingPromises.push(statsPromise)
+        top100OneDay[repoIndex] = one;
+        top100SevenDay[repoIndex] = seven;
+        top100TwentyEightDay[repoIndex] = twentyEight;
+        top100Previous[repoIndex] = previous;
+      });
+      batchingPromises.push(statsPromise);
     }
 
     // Batch removal of stats docs for repos that are not currently in the top 100.
-    batchingPromises.push(batchDeleteUnusedStatsDocs(top100External, batch))
+    batchingPromises.push(batchDeleteUnusedStatsDocs(top100External, batch));
     // Run all the 400 document gets for the historical stats in parallel
     // and not have the function timeout.
-    await Promise.all(batchingPromises)
+    await Promise.all(batchingPromises);
 
     if (!top100Internal.every((value) => value !== undefined)) {
-      functions.logger.warn(
+      console.warn(
         `Missing internal data (${top100Internal.filter(
           (value) => value === undefined
         )}).`
-      )
+      );
     }
 
     // Run all remaining actions in parallel, i.e. committing the batched operations (which
@@ -360,36 +316,16 @@ export const update = functions.pubsub
       // Save the internal data (both stats and repo data entries).
       ...batches.map((b) => b.commit()),
       // Excluding the tracking operations for the moment (see below).
-    ] as Promise<any>[])
+    ] as Promise<any>[]);
 
-    // Run tracking in parallel *after* finishing all data operations (so overall run
-    // sequentially) until https://github.com/draftbit/twitter-lite/issues/156 is fixed.
-    // So *note* that this is a **workaround** for https://github.com/creativecreatorormaybenot/github-tracker/issues/54
-    // in order to avoid losing any more data.
-    // Ideally, we would run both the data and tracking operations in parallel as much
-    // as possible, however, until we find a way to prevent the Twitter client from crashing
-    // the whole function, we need to make sure that all data is saved before we run any
-    // Twitter operations :)
     const trackingPromises: Array<Promise<any>> = [
-      trackFastestGrowing({
-        context,
-        top100External,
-        top100Internal,
-        top100SevenDay,
-        tweetManager,
-      }),
-      // We want to include a reference to the tweetTopRepo function to satifsy the linter.
-      // And we do not want to execute it on every function call in order to prevent spam.
-      ...(false ? [trackTopRepo(top100External, tweetManager)] : []),
-    ]
+      trackTopRepo(top100External, top100Previous, tweetManager),
+    ];
     // Add tracking operations for all of the top 100 repos individually.
     for (let i = 0; i < top100External.length; i++) {
       const repo = top100External[i],
         current = top100Internal[i],
-        // oneDay = top100OneDay[i],
-        // sevenDay = top100SevenDay[i],
-        // twentyEightDay = top100TwentyEightDay[i],
-        previous = top100Previous[i]
+        previous = top100Previous[i];
 
       if (previous !== undefined) {
         trackingPromises.push(
@@ -402,31 +338,178 @@ export const update = functions.pubsub
               tweetManager,
             }),
           ]
-        )
+        );
       }
     }
     // Run all tracking operations in parallel sequentially after the data operations.
-    await Promise.all(trackingPromises)
+    await Promise.all(trackingPromises);
 
     // Finally, tweet whatever tweet has the highest priority.
-    await tweetManager.tweet()
-  })
+    await tweetManager.tweet();
+  }
+);
+
+/**
+ * Makes the Twitter bot post the fastest growing repo of the month.
+ *
+ * This function is triggered at 3:15 PM on days 28-31 of each month.
+ * The function will only take action if the current day is the last day
+ * of the particular month.
+ */
+export const postMonthlyFunction = schedule('15 15 28-31 * *').onRun(
+  async (context) => {
+    // https://bobbyhadz.com/blog/javascript-check-if-date-is-last-day-of-month#check-if-a-date-is-the-last-day-of-the-month-in-javascript
+    function isLastDayOfMonth() {
+      const date = new Date();
+      const oneDayInMs = 1000 * 60 * 60 * 24;
+      return new Date(date.getTime() + oneDayInMs).getDate() === 1;
+    }
+    // Early exit if the function was not triggered on the last day of the month.
+    if (!isLastDayOfMonth()) return;
+
+    initializeFirestore();
+    await initializeTwitter();
+    const tweetManager = new TweetManager(twitter);
+
+    // We could also use a Firestore server timestamp instead, however,
+    // we want to use the local timestamp here, so that it represents the
+    // precise time we made the search request.
+    const now = Timestamp.now();
+
+    const top100External = await fetchTop100External();
+    if (top100External === undefined) return;
+
+    // We refer to the top100 retrieved from GitHub above as "external" as
+    // it uses a different data structure (interface) than the data that we
+    // end up saving to our database.
+    // Therefore, the "external" format is of type Repo and the "internal" format
+    // is of type "RepoData".
+    // Any data with a days ago suffix (e.g. 31day) is implicitly
+    // considered "internal". This is because the only external data we can get is
+    // the *latest* data, i.e. the data as of right now. Any older data has to come
+    // from our database and is consequently internal.
+    const top100Internal: Array<RepoData> = [],
+      top100ThirtyOneDay: Array<RepoData | undefined> = [];
+
+    for (const repo of top100External) {
+      const dataCollection = firestore
+        .collection('repos')
+        // We use the repo ID because we want to make sure that we
+        // can handle repo name changes and owner changes.
+        .doc(repo.id.toString())
+        .collection('data')
+        .withConverter(snapshotConverter<RepoData>());
+
+      const data: RepoData = {
+        timestamp: now,
+        position: top100External.indexOf(repo) + 1,
+        id: repo.id,
+        name: repo.name,
+        full_name: repo.full_name,
+        description: repo.description,
+        language: repo.language,
+        html_url: repo.html_url,
+        stargazers_count: repo.stargazers_count,
+        open_issues_count: repo.open_issues_count,
+        forks_count: repo.forks_count,
+        owner: {
+          id: repo.owner!.id,
+          login: repo.owner!.login,
+          html_url: repo.owner!.html_url,
+          avatar_url: repo.owner!.avatar_url,
+        },
+      };
+
+      // Save the index for later in order to update the undefined
+      // entries in the 1day, 7day, and 28day arrays at the correct index.
+      // This is necessary as all of the past internal repo data is fetched
+      // in parallel, which means that we cannot trust the order they complete in
+      // at all (it is totally random).
+      const repoIndex = top100Internal.length;
+      top100Internal.push(data);
+      top100ThirtyOneDay.push(undefined);
+
+      if (repoIndex !== data.position - 1) {
+        console.warn(
+          `Mismatch between repo index ${repoIndex} and repo position ${data.position} of repo ${data.full_name}.`
+        );
+      }
+
+      const thirtyOne = (await getDaysAgoDoc(dataCollection, now, 31))?.data();
+      top100ThirtyOneDay[repoIndex] = thirtyOne;
+    }
+
+    if (!top100Internal.every((value) => value !== undefined)) {
+      console.warn(
+        `Missing internal data (${top100Internal.filter(
+          (value) => value === undefined
+        )}).`
+      );
+    }
+
+    await trackFastestGrowing({
+      period: 'of the month',
+      top100External,
+      top100Internal,
+      top100Comparison: top100ThirtyOneDay,
+      tweetManager,
+    });
+
+    // Finally, tweet whatever tweet has the highest priority.
+    await tweetManager.tweet();
+  }
+);
+
+/**
+ * Fetches the top 100 software repos from the GitHub API.
+ */
+async function fetchTop100External(): Promise<Repo[] | undefined> {
+  // 32986 is the precise amount of stars that exactly only 200 repos
+  // had achieved at the time I wrote this code. There were 201 repos
+  // that had achieved 32986 stars.
+  // We fetch the top 200 repos to get the top 100 software repos because
+  // we assume that less than half of the repos are content repos.
+  const q = 'stars:>32986',
+    sort = 'stars',
+    per_page = 100;
+  const params: Endpoints['GET /search/repositories']['parameters'] = {
+    q,
+    sort,
+    per_page,
+  };
+  // We assume that the requests are successful and do not care about any
+  // other information that comes with the response.
+  let repos: Array<Repo> = [];
+  params.page = 1;
+  repos = repos.concat((await octokit.search.repos(params)).data.items);
+  params.page = 2;
+  repos = repos.concat((await octokit.search.repos(params)).data.items);
+
+  const softwareRepos = repos.filter(
+      (repo) => !contentRepos.includes(repo.full_name)
+    ),
+    top100External = softwareRepos.slice(0, 100);
+
+  // Make sure to exit early if the integrity of the retrieved data cannot be confirmed.
+  if (!checkTop100Integrity(top100External)) return undefined;
+  return top100External;
+}
 
 function checkTop100Integrity(repos: Repo[]): boolean {
   if (repos.length !== 100) {
-    functions.logger.error(
+    console.error(
       `Loaded data integrity compromised as only ` +
         `${repos.length}/100 top 100 repos were loaded.`
-    )
-    return false
+    );
+    return false;
   }
-  let stars = repos[0].stargazers_count
+  let stars = repos[0].stargazers_count;
   for (let i = 1; i < 100; i++) {
     if (repos[i].stargazers_count <= stars) {
-      stars = repos[i].stargazers_count
-      continue
+      stars = repos[i].stargazers_count;
+      continue;
     }
-    functions.logger.error(
+    console.error(
       `Integrity of loaded top 100 data is compromised as ` +
         `${repos[i].full_name} (position=${i + 1}) has ${
           repos[i].stargazers_count
@@ -435,25 +518,25 @@ function checkTop100Integrity(repos: Repo[]): boolean {
           repos[i - 1].full_name
         } (position=${i}) has ${stars}, ` +
         `i.e. the order is wrong.`
-    )
-    return false
+    );
+    return false;
   }
-  return true
+  return true;
 }
 
 function computeStatsSnapshot({
   snapshotData,
   latestData,
 }: {
-  snapshotData: RepoData
-  latestData: RepoData
+  snapshotData: RepoData;
+  latestData: RepoData;
 }): StatsSnapshot {
   return {
     position: snapshotData.position,
     stars: snapshotData.stargazers_count,
     positionChange: snapshotData.position - latestData.position,
     starsChange: latestData.stargazers_count - snapshotData.stargazers_count,
-  }
+  };
 }
 
 /**
@@ -464,29 +547,29 @@ function computeStatsSnapshot({
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getDaysAgoDoc<T>(
-  collection: admin.firestore.CollectionReference<T>,
-  now: admin.firestore.Timestamp,
+  collection: CollectionReference<T>,
+  now: Timestamp,
   days: number
-): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
-  const daysAgoMillis = now.toMillis() - 1000 * 60 * 60 * 24 * days
+): Promise<DocumentSnapshot<T> | undefined> {
+  const daysAgoMillis = now.toMillis() - 1000 * 60 * 60 * 24 * days;
   const result = await collection
     .where(
       'timestamp',
       '>=',
       // Give five minutes of slack for potential function execution deviations.
-      admin.firestore.Timestamp.fromMillis(daysAgoMillis - 1000 * 300)
+      Timestamp.fromMillis(daysAgoMillis - 1000 * 300)
     )
     .where(
       'timestamp',
       '<',
       // Give one hour of slack in case there was an issue with storing the data.
       // If the data is more than an hour old, we declare it as unusable.
-      admin.firestore.Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
+      Timestamp.fromMillis(daysAgoMillis + 1000 * 60 * 60)
     )
     .limit(1)
     .withConverter(snapshotConverter<T>())
-    .get()
-  return result.docs.length === 0 ? undefined : result.docs[0]
+    .get();
+  return result.docs.length === 0 ? undefined : result.docs[0];
 }
 
 /**
@@ -495,14 +578,14 @@ async function getDaysAgoDoc<T>(
  * @returns undefined if there is no such recorded data or one matching snapshot.
  */
 async function getLatestDoc<T>(
-  collection: admin.firestore.CollectionReference<T>
-): Promise<admin.firestore.DocumentSnapshot<T> | undefined> {
+  collection: CollectionReference<T>
+): Promise<DocumentSnapshot<T> | undefined> {
   const result = await collection
     .orderBy('timestamp', 'desc')
     .limit(1)
     .withConverter(snapshotConverter<T>())
-    .get()
-  return result.docs.length === 0 ? undefined : result.docs[0]
+    .get();
+  return result.docs.length === 0 ? undefined : result.docs[0];
 }
 
 /**
@@ -512,14 +595,14 @@ async function getLatestDoc<T>(
  */
 async function batchDeleteUnusedStatsDocs(
   top100External: Repo[],
-  batch: () => admin.firestore.WriteBatch
+  batch: () => WriteBatch
 ): Promise<void> {
-  const statsDocs = await typedCollection<StatsData>('stats').listDocuments()
+  const statsDocs = await typedCollection<StatsData>('stats').listDocuments();
 
-  const top100Ids = top100External.map((repo) => repo.id.toString())
+  const top100Ids = top100External.map((repo) => repo.id.toString());
   for (const repo of statsDocs) {
     if (!top100Ids.includes(repo.id)) {
-      batch().delete(repo)
+      batch().delete(repo);
     }
   }
 }
@@ -530,7 +613,7 @@ async function batchDeleteUnusedStatsDocs(
  * @returns a string repo tag.
  */
 function getRepoTag(repo: Repo): string {
-  return `*${repo.full_name}*`
+  return `*${repo.full_name}*`;
 }
 
 const enum PadStringMode {
@@ -549,19 +632,19 @@ const enum PadStringMode {
 function padString(input: string, mode: PadStringMode): string {
   switch (mode) {
     case PadStringMode.Start:
-      return ` ${input}`
+      return ` ${input}`;
     case PadStringMode.End:
-      return `${input} `
+      return `${input} `;
     case PadStringMode.Both:
-      return ` ${input} `
+      return ` ${input} `;
     case PadStringMode.None:
-      return input
+      return input;
   }
 }
 
 interface TwitterTagParameters {
-  repo: Repo
-  padStringMode?: PadStringMode
+  repo: Repo;
+  padStringMode?: PadStringMode;
 }
 
 /**
@@ -578,29 +661,29 @@ async function getTwitterTag({
   repo,
   padStringMode = PadStringMode.None,
 }: TwitterTagParameters): Promise<string> {
-  let twitter_username: string | null | undefined
+  let twitter_username: string | null | undefined;
   if (repo.owner!.type === 'User') {
     const user = (
       await octokit.users.getByUsername({ username: repo.owner!.login })
-    ).data
-    twitter_username = user.twitter_username
+    ).data;
+    twitter_username = user.twitter_username;
   } else {
     if (repo.owner!.type !== 'Organization') {
-      functions.logger.warn(
+      console.warn(
         `Unknown owner type "${repo.owner!.type}" for the owner of the ${
           repo.full_name
         } repo.`
-      )
+      );
     }
 
-    const org = (await octokit.orgs.get({ org: repo.owner!.login })).data
-    twitter_username = org.twitter_username
+    const org = (await octokit.orgs.get({ org: repo.owner!.login })).data;
+    twitter_username = org.twitter_username;
   }
 
   if (twitter_username === null || twitter_username === undefined) {
-    return ''
+    return '';
   }
-  return padString(`@${twitter_username}`, padStringMode)
+  return padString(`@${twitter_username}`, padStringMode);
 }
 
 /**
@@ -609,18 +692,18 @@ async function getTwitterTag({
  * @returns a string array of hashtags.
  */
 function getHashtags(repo: Repo): string[] {
-  const hashtags = [formatHashtag(repo.owner!.login)]
+  const hashtags = [formatHashtag(repo.owner!.login)];
   if (repo.owner!.login !== repo.name) {
-    hashtags.push(formatHashtag(repo.name))
+    hashtags.push(formatHashtag(repo.name));
   }
   if (
     repo.language !== null &&
     repo.language !== repo.owner!.login &&
     repo.language !== repo.name
   ) {
-    hashtags.push(formatHashtag(repo.language))
+    hashtags.push(formatHashtag(repo.language));
   }
-  return hashtags
+  return hashtags;
 }
 
 /**
@@ -633,41 +716,48 @@ function formatHashtag(tag: string): string {
   const formatted = tag
     .replace(/[-_.]/g, '')
     .replace(/#/g, 'sharp')
-    .replace(/\+/g, 'plus')
-  return `#${formatted}`
+    .replace(/\+/g, 'plus');
+  return `#${formatted}`;
 }
 
 /**
  * Tracks the top repository.
- * This posts a tweet about the most starred repo.
- * @param top100External the external data for the top 100 repos.
- * @param tweetManager the tweet manager for adding tweets.
+ * This posts a tweet about the most starred repo when it changes.
+ * @param top100External The external data for the top 100 repos.
+ * @param top100Previous The last saved internal data for the top 100 repos.
+ * @param tweetManager The tweet manager for adding tweets.
  */
 async function trackTopRepo(
   top100External: Repo[],
+  top100Previous: (RepoData | undefined)[],
   tweetManager: TweetManager
 ): Promise<void> {
   // Tweet about top repo.
-  const repo = top100External[0]
-  const repoTag = getRepoTag(repo)
+  const repo = top100External[0];
+  const previous = top100Previous[0];
+  if (previous === undefined) return;
+  // Only post about the top repo in case it changed.
+  if (repo.id === previous.id) return;
+
+  const repoTag = getRepoTag(repo);
   const formattedStars = numbro(repo.stargazers_count).format({
     average: true,
     mantissa: 1,
     optionalMantissa: true,
-  })
+  });
   const tweet = `
-The currently most starred software repo on #GitHub is ${repoTag} with ${formattedStars} 🌟
+${repoTag} is now the most starred software repo on #GitHub at ${formattedStars} 🌟
 
 ${await getTwitterTag({
   repo,
   padStringMode: PadStringMode.End,
 })}${getHashtags(repo).join(' ')}
-${repo.html_url}`
+${repo.html_url}`;
 
-  functions.logger.info(
+  console.info(
     `Tweeting about top repo ${repoTag} at ${repo.stargazers_count} stars (${tweet.length}/280 characters).`
-  )
-  tweetManager.addTweet(new Tweet(tweet, 1))
+  );
+  tweetManager.addTweet(new Tweet(tweet, 0));
 }
 
 /**
@@ -682,24 +772,24 @@ async function trackRepoMilestones(
   previous: RepoData,
   tweetManager: TweetManager
 ): Promise<void> {
-  const previousStars = previous.stargazers_count
-  const currentStars = repo.stargazers_count
+  const previousStars = previous.stargazers_count;
+  const currentStars = repo.stargazers_count;
 
-  if (currentStars < previousStars) return
+  if (currentStars < previousStars) return;
 
   for (const milestone of milestones) {
-    if (currentStars < milestone) break
-    if (previousStars >= milestone) continue
+    if (currentStars < milestone) break;
+    if (previousStars >= milestone) continue;
 
     // Tweet about milestone.
-    const repoTag = getRepoTag(repo)
+    const repoTag = getRepoTag(repo);
     const formattedMilestone = numbro(milestone).format({
       average: true,
       mantissa: 3,
       optionalMantissa: true,
-    })
+    });
     const tweet = `
-The ${repoTag} repo just crossed the ${formattedMilestone} 🌟 milestone on #GitHub 🎉
+${repoTag} just reached ${formattedMilestone} 🌟 on #GitHub 🎉
 
 Way to go${await getTwitterTag({
       repo,
@@ -707,18 +797,19 @@ Way to go${await getTwitterTag({
     })} and congrats on reaching this epic milestone 💪 ${getHashtags(
       repo
     ).join(' ')}
-${repo.html_url}`
+${repo.html_url}`;
 
-    functions.logger.info(
+    console.info(
       `Tweeting about ${repoTag} reaching the ${milestone} milestone (${tweet.length}/280 characters).`
-    )
-    tweetManager.addTweet(new Tweet(tweet, 1))
-    return
+    );
+    tweetManager.addTweet(new Tweet(tweet, 1));
+    return;
   }
 }
 
 /**
  * Tracks the position of the given repo by comparing the current position to its previous position.
+ * If the repo is currently not in the top 25 repos, the function will not take action.
  * @param current the current internal data of the repo to track.
  * @param previous the previous internal data of the repo to track.
  * @param top100External the external data for the top 100 repos.
@@ -730,160 +821,146 @@ async function trackRepoPosition({
   top100External,
   tweetManager,
 }: {
-  current: RepoData
-  previous: RepoData
-  top100External: Repo[]
-  tweetManager: TweetManager
+  current: RepoData;
+  previous: RepoData;
+  top100External: Repo[];
+  tweetManager: TweetManager;
 }): Promise<void> {
+  // Posting about position changes outside of the top 25 is too verbose.
+  if (current.position > 25) return;
   // There is nothing to inform about when the position has not changed.
-  if (current.position === previous.position) return
+  if (current.position === previous.position) return;
   // Also, for now I feel like we should only share good news. We could of course also approach this from
   // the opposite perspective, i.e. when the position of one repo improves, it has to disimprove for a
   // different one. That said, the approach in this function is to report about repos rising and also
   // capturing it this way.
-  if (current.position > previous.position) return
+  if (current.position > previous.position) return;
 
-  const repo = top100External[current.position - 1]
+  const repo = top100External[current.position - 1];
   if (repo.id !== current.id) {
-    functions.logger.warn(
+    console.warn(
       `Position of ${current.full_name} in the top 100 array does not match actual position.`
-    )
-    return
+    );
+    return;
   }
 
   // For now, we assume the simplest case, which is one repo taking the position of another, where
   // the position gain is at max 1.
   // The previous leader is now at the position that the repo to track was at before.
-  const previousLeader = top100External[previous.position - 1]
+  const previousLeader = top100External[previous.position - 1];
 
   // Tweet about one repo overtaking the other.
-  const repoTag = getRepoTag(repo)
+  const repoTag = getRepoTag(repo);
   const formattedStars = numbro(current.stargazers_count).format({
     average: true,
     mantissa: 1,
     optionalMantissa: true,
-  })
+  });
   const combinedHashtags = Array.from(
     new Set(getHashtags(repo).concat(getHashtags(previousLeader)))
-  ).join(' ')
+  ).join(' ');
   const tweet = `
 ${repoTag} just surpassed ${getRepoTag(previousLeader)} in stars on #GitHub 💥
 
-It is now the #${
-    current.position
-  } most starred software repo with ${formattedStars} 🌟
+The repo is now at ${formattedStars} 🌟 (top #${current.position} software repo)
 
 ${await getTwitterTag({
   repo,
   padStringMode: PadStringMode.End,
 })}${combinedHashtags}
-${current.html_url}`
+${current.html_url}`;
 
-  functions.logger.info(
+  console.info(
     `Tweeting about ${repoTag} surpassing ${getRepoTag(previousLeader)} (${
       tweet.length
     }/280 characters).`
-  )
-  tweetManager.addTweet(new Tweet(tweet, 2))
+  );
+  tweetManager.addTweet(new Tweet(tweet, 3));
 }
 
 /**
- * Tracks the fastest growing repos out of the top 100 software repos.
+ * Tracks the fastest growing repo out of the top 100 software repos.
  *
- * Currently, tweets about it every Monday at 3:15 PM UTC (noop otherwise). We can be sure that the
- * function is not called twice at 3:15 PM as CRON does not allow scheduling more than once per minute.
- *
- * Make sure that the top100 arrays all point to the same repos at the same indexes (indices, duh).
+ * The top100 arrays must all point to the same repos at the same indexes (indices, duh).
  * This means that the order of elements in the seven day array might not match the actual positions
  * of the repos at that time and should instead match the order at the current time.
- * @param context the function call event context containing the call timestamp.
- * @param top100External the external GitHub data of the top 100 repos.
- * @param top100Current the current internal data of the top 100 repos.
- * @param top100SevenDay the seven day internal data of the top 100 repos (entries might be null).
- * @param tweetManager the tweet manager for adding tweets.
+ * @param period The time period of the comparison as a readable string.
+ * This should make sense in "This is the fastest growing repo ${period}", e.g. "of the month".
+ * @param top100External The external GitHub data of the top 100 repos.
+ * @param top100Internal The current internal data of the top 100 repos.
+ * @param top100Comparison The internal comparison data that is from the given time period ago (entries might be null).
+ * @param tweetManager The @type {TweetManager} for adding tweets.
  */
 async function trackFastestGrowing({
-  context,
+  period,
   top100External,
   top100Internal,
-  top100SevenDay,
+  top100Comparison,
   tweetManager,
 }: {
-  context: functions.EventContext
-  top100External: Repo[]
-  top100Internal: RepoData[]
-  top100SevenDay: (RepoData | undefined)[]
-  tweetManager: TweetManager
+  period: string;
+  top100External: Repo[];
+  top100Internal: RepoData[];
+  top100Comparison: (RepoData | undefined)[];
+  tweetManager: TweetManager;
 }): Promise<void> {
-  const time = new Date(Date.parse(context.timestamp))
-  if (
-    // The day of the week ranges from 0 (Sunday) to 7 (Saturday).
-    time.getUTCDay() !== 1 ||
-    // The hours value ranges from 0 (12 AM) to 23 (11 PM).
-    time.getUTCHours() !== 15 ||
-    // The minutes value ranges from 0 to 59.
-    time.getUTCMinutes() !== 15
-  ) {
-    // We only want to run this on Mondays at 3:15 PM.
-    return
+  if (top100Comparison.every((value) => value === undefined)) {
+    // If every thirty one day entry is undefined, we do not want to post anything.
+    return;
   }
 
-  if (top100SevenDay.every((value) => value === undefined)) {
-    // If every seven day entry is undefined, we do not want to post anything.
-    return
-  }
-
-  let maxStarsChange = 0
-  let previousMaxStarsChange = 0
-  let repo: Repo | undefined
-  let internal: RepoData | undefined
+  let maxStarsChange = 0;
+  let previousMaxStarsChange = 0;
+  let repo: Repo | undefined;
+  let internal: RepoData | undefined;
 
   for (let i = 0; i < 100; i++) {
-    const sevenDay = top100SevenDay[i]
-    if (sevenDay === undefined) continue
-    const current = top100Internal[i]
+    const sevenDay = top100Comparison[i];
+    if (sevenDay === undefined) continue;
+    const current = top100Internal[i];
 
-    const change = current.stargazers_count - sevenDay.stargazers_count
+    const change = current.stargazers_count - sevenDay.stargazers_count;
     if (change <= maxStarsChange) {
       if (change === maxStarsChange) {
         // Edge case where we want to acknowledge that another repo has the same change.
-        previousMaxStarsChange = maxStarsChange
+        previousMaxStarsChange = maxStarsChange;
       }
       // Note that we will track the *first* repo with the max change only.
       // The thought behind it is that the first repo is the one with more stars overall,
       // which means that it should be the more popular one. The idea is that it makes
       // more sense to post about the more popular. We could think about posting about
       // both in the future :)
-      // (this case is unlikely)
-      continue
+      // (The case of two repos gaining the exact same amount of stars is unlikely,
+      // especially with longer time periods.)
+      continue;
     }
 
-    previousMaxStarsChange = maxStarsChange
-    maxStarsChange = change
-    repo = top100External[i]
-    internal = current
+    previousMaxStarsChange = maxStarsChange;
+    maxStarsChange = change;
+    repo = top100External[i];
+    internal = current;
   }
 
   if (repo === undefined || internal === undefined) {
     // If no repo had a positive change in the past seven days, we do not want to post.
-    return
+    return;
   }
   if (maxStarsChange === 0) {
     // If the maximum change is 0, we definitely do not want to post as well.
-    return
+    return;
   }
 
-  // Tweet about the fastest growing repo of the past week.
-  const repoTag = getRepoTag(repo)
+  // Tweet about the fastest growing repo of the given time period.
+  const repoTag = getRepoTag(repo);
   const formattedChange = numbro(maxStarsChange).format({
     thousandSeparated: true,
-  })
+  });
   const formattedStars = numbro(repo.stargazers_count).format({
     average: true,
     mantissa: 1,
     optionalMantissa: true,
-  })
-  let diffText = ' '
+  });
+  let diffText = ' ';
   if (
     maxStarsChange !== previousMaxStarsChange &&
     previousMaxStarsChange !== 0
@@ -894,24 +971,56 @@ async function trackFastestGrowing({
       output: 'percent',
       mantissa: 1,
       optionalMantissa: true,
-    })
-    diffText = `(${formattedDiff} more than any other repo) `
+    });
+    diffText = `(${formattedDiff} more than any other repo) `;
   }
   const tweet = `
-${repoTag} is the fastest growing top 100 software repo on #GitHub of the past week 🚀
+${repoTag} is the fastest growing top 100 software repo on #GitHub ${period} 🚀
 
-It gained a total of ${formattedChange} 🌟 ${diffText}and is #${
-    internal.position
-  } most starred overall w/ ${formattedStars} 🌟
++${formattedChange} 🌟 during that time ${diffText}
+-> ${formattedStars} 🌟 in total (top #${internal.position} software repo)
   
 Way to go${await getTwitterTag({
     repo,
     padStringMode: PadStringMode.Start,
   })} 💪 ${getHashtags(repo).join(' ')}
-${repo.html_url}`
+${repo.html_url}`;
 
-  functions.logger.info(
-    `Tweeting about ${repoTag} being the fastest growing repo of the past week (${tweet.length}/280 characters).`
-  )
-  tweetManager.addTweet(new Tweet(tweet, 0))
+  console.info(
+    `Tweeting about ${repoTag} being the fastest growing repo ${period} (${tweet.length}/280 characters).`
+  );
+  tweetManager.addTweet(new Tweet(tweet, 2));
+}
+
+/**
+ * Initializes Firestore outside of the global scope in order to run after
+ * initializeApp().
+ */
+function initializeFirestore() {
+  if (firestore !== undefined) return;
+  firestore = getFirestore();
+}
+
+/**
+ * Asynchronously initializes the global @type {TwitterApi} instance
+ * using the credentials stored in Google Cloud Secret Manager.
+ */
+async function initializeTwitter(): Promise<void> {
+  // Load the Twitter client asynchronously on cold start.
+  // The reason we have to do this is in order to ensure that
+  // the client is loaded before execution as it depends on secrets
+  // that can only be loaded asynchronously from secret manager.
+  if (twitter === undefined) {
+    const secretsAccessor = new SecretsAccessor(secretManager);
+    twitter = new TwitterApi({
+      appKey: await secretsAccessor.access('TWITTER_APP_CONSUMER_KEY'),
+      appSecret: await secretsAccessor.access(
+        'TWITTER_APP_CONSUMER_KEY_SECRET'
+      ),
+      accessToken: await secretsAccessor.access('TWITTER_APP_ACCESS_TOKEN'),
+      accessSecret: await secretsAccessor.access(
+        'TWITTER_APP_ACCESS_TOKEN_SECRET'
+      ),
+    });
+  }
 }

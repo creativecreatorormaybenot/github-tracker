@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:github_tracker/data/strings.dart';
-import 'package:github_tracker/models/dashboard_state.dart';
 import 'package:github_tracker/providers/dashboard.dart';
-import 'package:github_tracker/widgets/error_code.dart';
 import 'package:github_tracker/widgets/link.dart';
 import 'package:github_tracker/widgets/stats_table.dart';
 import 'package:intl/intl.dart';
@@ -16,137 +13,58 @@ class Dashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(dashboardProvider);
-
-    if (state is DashboardErrorState) {
-      return const ErrorCode(
-        errorCode: 'ed00',
+    final dataTimestamp = ref.watch(repoStatsProvider.select((repoStats) {
+      return repoStats.value?.first.metadata.timestamp;
+    }));
+    if (dataTimestamp == null) {
+      return const Center(
+        child: Text(Strings.dashboardLoadingData),
       );
     }
 
-    final data = state is DashboardDataState
-        ? state.data
-        : state is DashboardLoadingState
-            ? state.previousData
-            : null;
-    return FocusableActionDetector(
-      autofocus: true,
-      shortcuts: {
-        LogicalKeySet(LogicalKeyboardKey.arrowUp): const ScrollIntent(
-          direction: AxisDirection.up,
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: 48,
+        bottom: 96,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          // todo: find a better layout approach :)
+          maxWidth: 420 + 420 * MediaQuery.textScaleFactorOf(context),
+          maxHeight: 280 + 280 * MediaQuery.textScaleFactorOf(context),
         ),
-        LogicalKeySet(LogicalKeyboardKey.arrowDown): const ScrollIntent(
-          direction: AxisDirection.down,
-        ),
-        LogicalKeySet(LogicalKeyboardKey.arrowLeft): const ScrollIntent(
-          direction: AxisDirection.left,
-        ),
-        LogicalKeySet(LogicalKeyboardKey.arrowRight): const ScrollIntent(
-          direction: AxisDirection.right,
-        ),
-        LogicalKeySet(LogicalKeyboardKey.pageUp): const ScrollIntent(
-          direction: AxisDirection.up,
-          type: ScrollIncrementType.page,
-        ),
-        LogicalKeySet(LogicalKeyboardKey.pageDown): const ScrollIntent(
-          direction: AxisDirection.down,
-          type: ScrollIncrementType.page,
-        ),
-      },
-      actions: {
-        ScrollIntent: CallbackAction<ScrollIntent>(
-          onInvoke: (intent) {
-            if (state is DashboardLoadingState) return null;
-            switch (intent.direction) {
-              case AxisDirection.down:
-              case AxisDirection.right:
-                ref.read(dashboardProvider.notifier).updatePage(1);
-                return null;
-              case AxisDirection.up:
-              case AxisDirection.left:
-                ref.read(dashboardProvider.notifier).updatePage(-1);
-                return null;
-            }
-          },
-        ),
-      },
-      child: Stack(
-        children: [
-          if (data != null)
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                // todo: find a better layout approach :)
-                maxWidth: 420 + 420 * MediaQuery.textScaleFactorOf(context),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _TableHeader(),
+            const Expanded(
+              child: RepoStatsTable(),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 8,
+                top: 32,
               ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _TableHeader(),
-                  Stack(
-                    children: [
-                      MouseRegion(
-                        cursor: state is DashboardLoadingState
-                            ? SystemMouseCursors.wait
-                            : SystemMouseCursors.click,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            ref.read(dashboardProvider.notifier).updatePage(1);
-                          },
-                          child: AnimatedStatsTable(
-                            repoStats: data,
-                            pageSize:
-                                ref.watch(dashboardProvider.notifier).pageSize,
-                          ),
-                        ),
-                      ),
-                      const _ArrowButton(
-                        top: true,
-                      ),
-                      const _ArrowButton(
-                        top: false,
-                      ),
-                    ],
+                  SelectableText(
+                    Strings.dashboardFooter(
+                      DateFormat('HH:mm, MMMM d, y').format(dataTimestamp),
+                    ),
+                    style: Theme.of(context).textTheme.caption,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 8,
-                      top: 32,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SelectableText(
-                          Strings.dashboardFooter(
-                            DateFormat('HH:mm, MMMM d, y')
-                                .format(data.first.metadata.timestamp),
-                          ),
-                          style: Theme.of(context).textTheme.caption,
-                        ),
-                        const Link(
-                          url: Strings.dashboardFooterLink,
-                          body: Text(Strings.dashboardFooterLink),
-                        ),
-                      ],
-                    ),
+                  const Link(
+                    url: Strings.dashboardFooterLink,
+                    body: Text(Strings.dashboardFooterLink),
                   ),
                 ],
               ),
             ),
-          if (state is DashboardLoadingState)
-            Positioned.fill(
-              child: Align(
-                alignment:
-                    data == null ? Alignment.center : Alignment.bottomRight,
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text(Strings.dashboardLoadingData),
-                ),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -164,40 +82,6 @@ class _TableHeader extends StatelessWidget {
       child: Text(
         Strings.dashboardTableTitle,
         style: Theme.of(context).textTheme.headline4,
-      ),
-    );
-  }
-}
-
-class _ArrowButton extends ConsumerWidget {
-  const _ArrowButton({
-    Key? key,
-    required this.top,
-  }) : super(key: key);
-
-  final bool top;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Positioned(
-      bottom: top ? null : -8,
-      top: top ? -8 : null,
-      left: 0,
-      right: 0,
-      child: AnimatedOpacity(
-        opacity: ref.watch(dashboardProvider) is DashboardLoadingState ? 0 : 1,
-        duration: const Duration(milliseconds: 242),
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () {
-              ref.read(dashboardProvider.notifier).updatePage(top ? -1 : 1);
-            },
-            child: top
-                ? const Icon(Icons.keyboard_arrow_up_outlined)
-                : const Icon(Icons.keyboard_arrow_down_outlined),
-          ),
-        ),
       ),
     );
   }

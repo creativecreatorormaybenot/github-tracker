@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         package:
-          - 'functions'
+          - 'cloud_functions'
           - 'firestore'
       fail-fast: false
     env:

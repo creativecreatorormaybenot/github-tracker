@@ -1,116 +1,91 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:github_tracker/data/strings.dart';
 import 'package:github_tracker/models/repo_stats.dart';
+import 'package:github_tracker/providers/dashboard.dart';
 import 'package:github_tracker/widgets/repo_identifier.dart';
 import 'package:github_tracker/widgets/repo_position.dart';
 import 'package:github_tracker/widgets/repo_stars.dart';
 import 'package:github_tracker/widgets/stats_change.dart';
 
-/// Animated version of the [StatsTable] that animates whenever the [repoStats] change.
-///
-/// Note that the animation is built in a way that does not consider any change of the
-/// [pageSize].
-class AnimatedStatsTable extends StatefulWidget {
-  /// Creates an [AnimatedStatsTable] with the given [repoStats] and [pageSize].
-  const AnimatedStatsTable({
-    Key? key,
-    required this.repoStats,
-    required this.pageSize,
-  }) : super(key: key);
-
-  /// Data / list of repo stats that should be displayed.
-  ///
-  /// A change of the list (comparing the first items in the lists) will trigger
-  /// an animation of the full list. The slide direction of the animation is determined
-  /// by comparing the position of the first items in the lists. Note that no animation
-  /// will play if the position of the first items of the lists are equal.
-  final List<RepoStats> repoStats;
-
-  /// Page size used to fill remaining cells if [repoStats] does not have enough
-  /// entries.
-  final int pageSize;
+/// Table for displaying the stats of all repos.
+class RepoStatsTable extends ConsumerWidget {
+  const RepoStatsTable({super.key});
 
   @override
-  State<AnimatedStatsTable> createState() => _AnimatedStatsTableState();
-}
-
-class _AnimatedStatsTableState extends State<AnimatedStatsTable>
-    with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(
-    vsync: this,
-    value: 1,
-    duration: const Duration(milliseconds: 1420),
-  );
-  late final _curvedAnimation = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeIn,
-  );
-
-  List<RepoStats>? _oldRepoStats;
-  bool get _slideDown {
-    if (_oldRepoStats == null) return false;
-
-    final oldLeadingPosition = _oldRepoStats!.first.latest.position;
-    final newLeadingPosition = widget.repoStats.first.latest.position;
-
-    final slideDown = oldLeadingPosition > newLeadingPosition;
-    if ((oldLeadingPosition - newLeadingPosition).abs() > widget.pageSize) {
-      // If the difference between the two positions is greater than the page size,
-      // we are (probably) rolling over from the last page to the first page or vise
-      // versa, in which case we need to reverse the natural sliding direction.
-      return !slideDown;
-    }
-    return slideDown;
-  }
-
-  @override
-  void didUpdateWidget(covariant AnimatedStatsTable oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    final oldLeadingPosition = oldWidget.repoStats.first.latest.position;
-    final newLeadingPosition = widget.repoStats.first.latest.position;
-    if (oldLeadingPosition != newLeadingPosition) {
-      _oldRepoStats = List.of(oldWidget.repoStats);
-      _controller.forward(from: 0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.hardEdge,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repoStats = ref.watch(repoStatsProvider).value ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_oldRepoStats != null)
-          SlideTransition(
-            position: _curvedAnimation.drive(
-              Tween<Offset>(
-                begin: Offset.zero,
-                end: _slideDown ? const Offset(0, 1) : const Offset(0, -1),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _HeaderCell(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              widthChild: _PositionChangeWidth(),
+              tooltipMessage: Strings.dashboardOneDayTooltip,
+              child: Text(Strings.dashboardOneDay),
+            ),
+            _HeaderCell(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              widthChild: _PositionChangeWidth(),
+              tooltipMessage: Strings.dashboardSevenDayTooltip,
+              child: Text(Strings.dashboardSevenDay),
+            ),
+            _HeaderCell(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              widthChild: _PositionChangeWidth(),
+              tooltipMessage: Strings.dashboardTwentyEightDayTooltip,
+              child: Text(Strings.dashboardTwentyEightDay),
+            ),
+            _HeaderCell(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              widthChild: _RankWidth(),
+              child: Text(Strings.dashboardRank),
+            ),
+            Expanded(
+              child: _HeaderCell(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                widthChild: SizedBox.expand(),
+                child: Text(Strings.dashboardRepo),
               ),
             ),
-            child: StatsTable(
-              repoStats: _oldRepoStats!,
-              pageSize: widget.pageSize,
+            _HeaderCell(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              widthChild: _StarsWidth(),
+              child: Text(Strings.dashboardStars),
             ),
-          ),
-        SlideTransition(
-          position: _curvedAnimation.drive(
-            Tween<Offset>(
-              begin: _slideDown ? const Offset(0, -1) : const Offset(0, 1),
-              end: Offset.zero,
+            _HeaderCell(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              widthChild: _StarsChangeWidth(),
+              tooltipMessage: Strings.dashboardTwentyEightDayTooltip,
+              child: Text(Strings.dashboardTwentyEightDay),
             ),
-          ),
-          child: StatsTable(
-            repoStats: widget.repoStats,
-            pageSize: widget.pageSize,
+            _HeaderCell(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              widthChild: _StarsChangeWidth(),
+              tooltipMessage: Strings.dashboardSevenDayTooltip,
+              child: Text(Strings.dashboardSevenDay),
+            ),
+            _HeaderCell(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              widthChild: _StarsChangeWidth(),
+              tooltipMessage: Strings.dashboardOneDayTooltip,
+              child: Text(Strings.dashboardOneDay),
+            ),
+          ],
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: repoStats.length,
+            itemBuilder: (context, index) {
+              return _StatsRow(
+                stats: repoStats[index],
+              );
+            },
           ),
         ),
       ],
@@ -118,227 +93,135 @@ class _AnimatedStatsTableState extends State<AnimatedStatsTable>
   }
 }
 
-/// Table for displaying stats of multiple repos.
-class StatsTable extends StatelessWidget {
-  /// Creates a [StatsTable] widget.
-  const StatsTable({
-    Key? key,
-    required this.repoStats,
-    required this.pageSize,
-  }) : super(key: key);
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({
+    required this.stats,
+  });
 
-  /// Data / list of repo stats that should be displayed.
-  final List<RepoStats> repoStats;
-
-  /// Page size used to fill remaining cells if [repoStats] does not have enough
-  /// entries.
-  final int pageSize;
-
-  List<T> _fillRemaining<T>(T Function() builder) {
-    return [
-      for (var i = repoStats.length; i < pageSize; i++) builder(),
-    ];
-  }
+  final RepoStats stats;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // todo: extract/refactor this code.
-        _Column(
+        _Cell(
           crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Tooltip(
-            message: Strings.dashboardOneDayTooltip,
-            child: Text(Strings.dashboardOneDay),
+          widthChild: const _PositionChangeWidth(),
+          child: StatsChange(
+            change: stats.oneDay?.positionChange,
+            arrowPosition: StatsChangeArrowPosition.back,
           ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.oneDay?.positionChange,
-                arrowPosition: StatsChangeArrowPosition.back,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
         ),
-        _Column(
+        _Cell(
           crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Tooltip(
-            message: Strings.dashboardSevenDayTooltip,
-            child: Text(Strings.dashboardSevenDay),
+          widthChild: const _PositionChangeWidth(),
+          child: StatsChange(
+            change: stats.sevenDay?.positionChange,
+            arrowPosition: StatsChangeArrowPosition.back,
           ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.sevenDay?.positionChange,
-                arrowPosition: StatsChangeArrowPosition.back,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
         ),
-        _Column(
+        _Cell(
           crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Tooltip(
-            message: Strings.dashboardTwentyEightDayTooltip,
-            child: Text(Strings.dashboardTwentyEightDay),
+          widthChild: const _PositionChangeWidth(),
+          child: StatsChange(
+            change: stats.twentyEightDay?.positionChange,
+            arrowPosition: StatsChangeArrowPosition.back,
           ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.twentyEightDay?.positionChange,
-                arrowPosition: StatsChangeArrowPosition.back,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
         ),
-        _Column(
+        _Cell(
           crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Text(Strings.dashboardRank),
-          children: [
-            for (final stats in repoStats) RepoPosition(stats: stats),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
+          widthChild: const _RankWidth(),
+          child: RepoPosition(
+            stats: stats,
+          ),
         ),
         Expanded(
-          child: _Column(
+          child: _Cell(
             crossAxisAlignment: CrossAxisAlignment.start,
-            header: const Text(Strings.dashboardRepo),
-            children: [
-              for (final stats in repoStats) RepoIdentifier(stats: stats),
-              ..._fillRemaining(
-                () => const StatsChange(
-                  change: 0,
-                  arrowPosition: StatsChangeArrowPosition.front,
-                ),
-              ),
-            ],
+            widthChild: const SizedBox.expand(),
+            child: RepoIdentifier(
+              stats: stats,
+            ),
           ),
         ),
-        _Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          header: const Text(Strings.dashboardStars),
-          children: [
-            for (final stats in repoStats) RepoStars(stats: stats),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
-        ),
-        // todo: extract/refactor this code.
-        _Column(
+        _Cell(
           crossAxisAlignment: CrossAxisAlignment.start,
-          header: const Tooltip(
-            message: Strings.dashboardTwentyEightDayTooltip,
-            child: Text(Strings.dashboardTwentyEightDay),
+          widthChild: const _StarsWidth(),
+          child: RepoStars(
+            stats: stats,
           ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.twentyEightDay?.starsChange,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
         ),
-        _Column(
+        _Cell(
           crossAxisAlignment: CrossAxisAlignment.start,
-          header: const Tooltip(
-            message: Strings.dashboardSevenDayTooltip,
-            child: Text(Strings.dashboardSevenDay),
+          widthChild: const _StarsChangeWidth(),
+          child: StatsChange(
+            change: stats.twentyEightDay?.starsChange,
+            arrowPosition: StatsChangeArrowPosition.front,
           ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.sevenDay?.starsChange,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
         ),
-        _Column(
+        _Cell(
           crossAxisAlignment: CrossAxisAlignment.start,
-          header: const Tooltip(
-            message: Strings.dashboardOneDayTooltip,
-            child: Text(Strings.dashboardOneDay),
+          widthChild: const _StarsChangeWidth(),
+          child: StatsChange(
+            change: stats.sevenDay?.starsChange,
+            arrowPosition: StatsChangeArrowPosition.front,
           ),
-          children: [
-            for (final stats in repoStats)
-              StatsChange(
-                change: stats.oneDay?.starsChange,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ..._fillRemaining(
-              () => const StatsChange(
-                change: 0,
-                arrowPosition: StatsChangeArrowPosition.front,
-              ),
-            ),
-          ],
+        ),
+        _Cell(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          widthChild: const _StarsChangeWidth(),
+          child: StatsChange(
+            change: stats.oneDay?.starsChange,
+            arrowPosition: StatsChangeArrowPosition.front,
+          ),
         ),
       ],
     );
   }
 }
 
-class _Column extends StatelessWidget {
-  const _Column({
-    Key? key,
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell({
     required this.crossAxisAlignment,
-    required this.header,
-    required this.children,
-  }) : super(key: key);
+    required this.widthChild,
+    this.tooltipMessage,
+    required this.child,
+  });
 
+  /// See [_Cell.crossAxisAlignment].
   final CrossAxisAlignment crossAxisAlignment;
-  final Widget header;
-  final List<Widget> children;
+
+  /// See [_Cell.widthChild].
+  final Widget widthChild;
+
+  final String? tooltipMessage;
+
+  /// The bold heading for the cell column.
+  ///
+  /// This is usually a [Text] widget and formatted via [DefaultTextStyle].
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    Widget result = DefaultTextStyle.merge(
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+      ),
+      child: child,
+    );
+
+    if (tooltipMessage != null) {
+      result = Tooltip(
+        message: tooltipMessage,
+        child: result,
+      );
+    }
+
+    return _Cell(
       crossAxisAlignment: crossAxisAlignment,
-      children: [
-        _HeaderCell(
-          child: header,
-        ),
-        for (final child in children)
-          _Cell(
-            child: child,
-          ),
-      ],
+      widthChild: widthChild,
+      child: result,
     );
   }
 }
@@ -348,30 +231,35 @@ const _kCellPadding = EdgeInsets.symmetric(
   horizontal: 8,
 );
 
-class _HeaderCell extends StatelessWidget {
-  const _HeaderCell({Key? key, required this.child}) : super(key: key);
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: _kCellPadding,
-      child: DefaultTextStyle.merge(
-        style: const TextStyle(fontWeight: FontWeight.bold),
-        child: child,
-      ),
-    );
-  }
-}
-
 class _Cell extends StatelessWidget {
-  const _Cell({Key? key, required this.child}) : super(key: key);
+  const _Cell({
+    required this.crossAxisAlignment,
+    required this.widthChild,
+    required this.child,
+  });
+
+  /// The cross axis alignment of the [child] within the cell.
+  ///
+  /// This must be one of [CrossAxisAlignment.start] and
+  /// [CrossAxisAlignment.end].
+  final CrossAxisAlignment crossAxisAlignment;
+
+  /// Widget that determines the width of this cell.
+  ///
+  /// This is passed in order to give all cells in a column the same width
+  /// without knowing the width pre-layout.
+  /// This asserts that no cell in that column exceeds the given width of the
+  /// given width child.
+  ///
+  /// The [widthChild] is inserted with 0 opacity.
+  final Widget widthChild;
 
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
+    assert(crossAxisAlignment == CrossAxisAlignment.start ||
+        crossAxisAlignment == CrossAxisAlignment.end);
     final height = max(
       // The max cell height is either the font size or icon size.
       DefaultTextStyle.of(context).style.fontSize! *
@@ -381,16 +269,100 @@ class _Cell extends StatelessWidget {
 
     return Padding(
       padding: _kCellPadding,
-      child: SizedBox(
-        height: height,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Ensure that every cell is vertically centered in its row :)
-            child,
-          ],
-        ),
+      child: Stack(
+        children: [
+          SizedBox(
+            height: height,
+            child: Opacity(
+              opacity: 0,
+              child: widthChild,
+            ),
+          ),
+          Positioned.fill(
+            left: crossAxisAlignment == CrossAxisAlignment.start ? 0 : null,
+            right: crossAxisAlignment == CrossAxisAlignment.end ? 0 : null,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Ensure that every cell is vertically centered in its row :)
+                child,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Widget that defines the max width of a position change + some extra padding.
+class _PositionChangeWidth extends StatelessWidget {
+  const _PositionChangeWidth();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(
+        left: 12,
+      ),
+      child: StatsChange(
+        // A change of more than 99 positions is not possible.
+        change: 99,
+        arrowPosition: StatsChangeArrowPosition.back,
+      ),
+    );
+  }
+}
+
+/// Widget that defines the max width of a rank cell + some extra padding.
+class _RankWidth extends StatelessWidget {
+  const _RankWidth();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(
+        left: 8,
+      ),
+      child: Text('100'),
+    );
+  }
+}
+
+/// Widget that defines the max width of a repo's stars count + some extra
+/// padding.
+class _StarsWidth extends StatelessWidget {
+  const _StarsWidth();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(
+        right: 8,
+      ),
+      // No software repo will cross 1M stars in the foreseeable future.
+      // The max stars as of now are 200,440 (vuejs/vue).
+      child: Text('999,999'),
+    );
+  }
+}
+
+/// Widget that defines the max width of a stars change + some extra padding.
+class _StarsChangeWidth extends StatelessWidget {
+  const _StarsChangeWidth();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(
+        right: 8,
+      ),
+      child: StatsChange(
+        // This is displayed as "99.9K" and is the longest possible string in my
+        // testing.
+        change: 99900,
+        arrowPosition: StatsChangeArrowPosition.front,
       ),
     );
   }

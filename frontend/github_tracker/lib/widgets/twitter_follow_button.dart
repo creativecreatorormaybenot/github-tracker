@@ -13,10 +13,18 @@ class TwitterFollowButton extends StatelessWidget {
   const TwitterFollowButton({
     Key? key,
     required this.username,
+    required this.label,
   }) : super(key: key);
 
   /// The username/handle of the user to follow on Twitter.
   final String username;
+
+  /// The follow label.
+  ///
+  /// This should make sense after "Follow " in a sentence.
+  ///
+  /// See also [Strings.twitterFollowButton].
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +35,7 @@ class TwitterFollowButton extends StatelessWidget {
         return TextButton.icon(
           onPressed: followLink,
           style: TextButton.styleFrom(
-            primary: Colors.white,
+            foregroundColor: Colors.white,
             backgroundColor: const Color(0xff1d9bf0),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -42,7 +50,7 @@ class TwitterFollowButton extends StatelessWidget {
             size: 18,
           ),
           label: Text(
-            Strings.twitterFollowButtonLabel(username),
+            Strings.twitterFollowButton(label, username),
             style: const TextStyle(
               fontSize: 13,
             ),
