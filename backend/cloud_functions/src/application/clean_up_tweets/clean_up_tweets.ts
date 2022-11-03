@@ -167,7 +167,7 @@ async function catchApiResponseError(e: ApiResponseError): Promise<void> {
         oidcToken: {
           serviceAccountEmail:
             'clean-up-tweets-invoker@github-tracker-b5c54.iam.gserviceaccount.com',
-          audience: new URL(url).origin,
+          audience: url,
         },
         headers: {
           'Content-Type': 'application/json',
