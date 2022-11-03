@@ -11,6 +11,8 @@ const secretManager = new SecretManagerServiceClient();
 // Tweets below this threshold are deemed irrelevant.
 let twitter: TwitterApi;
 
+const loggingTag = '[clean-up-tweets]';
+
 /**
  * Deletes all tweets matching or below the specified likes threshold that
  * is older than 8 days.
@@ -86,8 +88,9 @@ async function cleanUpTweets(): Promise<void> {
     }
   } finally {
     console.info(
-      `Fetched ${count} tweets. ` +
-        `${tweetsToDelete.length} of those should be cleaned up.`
+      loggingTag,
+      `Fetched ${count} tweets.`,
+      `${tweetsToDelete.length} of those should be cleaned up.`
     );
   }
 
@@ -99,6 +102,7 @@ async function cleanUpTweets(): Promise<void> {
   try {
     for (const tweet of tweetsToDelete) {
       console.info(
+        loggingTag,
         `Deleting tweet with id="${tweet.id}" as it does not have more than ${likesThreshold} likes.`
       );
       await twitter.v2.deleteTweet(tweet.id);
@@ -110,7 +114,10 @@ async function cleanUpTweets(): Promise<void> {
       return;
     }
   } finally {
-    console.info(`Deleted ${deleted}/${tweetsToDelete.length} tweets.`);
+    console.info(
+      loggingTag,
+      `Deleted ${deleted}/${tweetsToDelete.length} tweets.`
+    );
   }
 }
 
@@ -122,7 +129,10 @@ async function cleanUpTweets(): Promise<void> {
  */
 async function catchApiResponseError(e: ApiResponseError): Promise<void> {
   if (!e.rateLimitError) {
-    console.error(`Cleaning up tweets was cancelled due to ${e.message}`);
+    console.error(
+      loggingTag,
+      `Cleaning up tweets was cancelled due to ${e.message}`
+    );
     return;
   }
   const rateLimit = e.rateLimit!;
@@ -130,9 +140,10 @@ async function catchApiResponseError(e: ApiResponseError): Promise<void> {
 
   const retryDate = new Date(rateLimit.reset * 1000);
   console.warn(
-    'Twitter API rate limit was reached ' +
-      `(0/${rateLimit.limit} requests remaining). ` +
-      `Retrying request at ${retryDate.toISOString()}.`
+    loggingTag,
+    'Twitter API rate limit was reached ',
+    `(0/${rateLimit.limit} requests remaining). `,
+    `Retrying request at ${retryDate.toISOString()}.`
   );
 
   // Schedule a Cloud Task at the reset time of the Twitter API rate limit
@@ -167,6 +178,7 @@ async function catchApiResponseError(e: ApiResponseError): Promise<void> {
     },
   });
   console.info(
+    loggingTag,
     `Created task ${
       response.name
     } to retry cleaning up tweets at${retryDate.toISOString()}.`
