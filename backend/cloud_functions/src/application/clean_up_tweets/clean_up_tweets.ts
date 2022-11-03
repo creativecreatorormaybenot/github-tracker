@@ -135,6 +135,8 @@ async function catchApiResponseError(e: ApiResponseError): Promise<void> {
       `Retrying request at ${retryDate.toISOString()}.`
   );
 
+  // Schedule a Cloud Task at the reset time of the Twitter API rate limit
+  // to invoke the cleanUpTweetsHttpFunction and continue cleaning up.
   const url =
     'https://us-central1-github-tracker-b5c54.cloudfunctions.net/cleanuptweetshttps';
 
