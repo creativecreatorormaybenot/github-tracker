@@ -20,7 +20,7 @@ jobs:
       working-directory: 'backend/${{ matrix.package }}'
 
     steps:
-      - uses: actions/checkout@v2.4.2
+      - uses: actions/checkout@v2.5.0
       - run: npm install
         working-directory: ${{ env.working-directory }}
       - run: npm run lint
@@ -39,7 +39,7 @@ jobs:
       working-directory: 'backend/${{ matrix.package }}'
 
     steps:
-      - uses: actions/checkout@v2.4.2
+      - uses: actions/checkout@v2.5.0
       - run: npm install
         working-directory: ${{ env.working-directory }}
       - run: npm test
