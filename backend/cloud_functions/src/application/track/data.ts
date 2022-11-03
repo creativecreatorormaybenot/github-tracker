@@ -2,7 +2,7 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { Octokit } from '@octokit/rest';
 import {
   Endpoints,
-  GetResponseDataTypeFromEndpointMethod,
+  GetResponseDataTypeFromEndpointMethod
 } from '@octokit/types';
 import {
   CollectionReference,
@@ -13,17 +13,18 @@ import {
   getFirestore,
   QueryDocumentSnapshot,
   Timestamp,
-  WriteBatch,
+  WriteBatch
 } from 'firebase-admin/firestore';
 import * as v1 from 'firebase-functions/v1';
 import { merge } from 'lodash';
-import numbro from 'numbro';
 import { TwitterApi } from 'twitter-api-v2';
 import { blurhashFromImage } from '../../infrastructure/blurhash';
 import { SecretsAccessor } from '../../infrastructure/secrets';
 import { Tweet, TweetManager } from '../../infrastructure/tweets';
 import { contentRepos } from './content-repos';
 import { milestones } from './milestones';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const numbro = require('numbro');
 
 // Initialize clients that can be initialized synchronously.
 const octokit = new Octokit();
@@ -367,11 +368,12 @@ export const postMonthlyFunction = v1
       const oneDayInMs = 1000 * 60 * 60 * 24;
       return new Date(date.getTime() + oneDayInMs).getDate() === 1;
     }
-    // Early exit if the function was not triggered on the last day of the month.
+    // Early return if the function was not triggered on the last day of the month.
     if (!isLastDayOfMonth()) {
       console.info(
-        `Not posting about the fastest growing repo of the month as today ${new Date().toISOString()} ` +
-          'is not the last of the month.'
+        'Not posting about the fastest growing repo of the month as today',
+        `(${new Date().toISOString()})`,
+        'is not the last of the month.'
       );
       return;
     }
@@ -457,7 +459,8 @@ export const postMonthlyFunction = v1
     }
 
     await trackFastestGrowing({
-      period: 'of the month',
+      periodHeadline: 'of the month',
+      periodChange: 'this month',
       top100External,
       top100Internal,
       top100Comparison: top100ThirtyOneDay,
@@ -892,21 +895,26 @@ ${current.html_url}`;
  * The top100 arrays must all point to the same repos at the same indexes (indices, duh).
  * This means that the order of elements in the seven day array might not match the actual positions
  * of the repos at that time and should instead match the order at the current time.
- * @param period The time period of the comparison as a readable string.
- * This should make sense in "This is the fastest growing repo ${period}", e.g. "of the month".
+ * @param periodHeadline Readable string to define the period of comparison.
+ * This should make sense in "This is the fastest growing repo ${periodHeadline}",
+ * e.g. "of the month" or "of the last week".
+ * @param periodChange Readable string to define the period of change.
+ * This make sense in "+420 stars ${periodChange}", e.g. "this month".
  * @param top100External The external GitHub data of the top 100 repos.
  * @param top100Internal The current internal data of the top 100 repos.
  * @param top100Comparison The internal comparison data that is from the given time period ago (entries might be null).
  * @param tweetManager The @type {TweetManager} for adding tweets.
  */
 async function trackFastestGrowing({
-  period,
+  periodHeadline,
+  periodChange,
   top100External,
   top100Internal,
   top100Comparison,
   tweetManager,
 }: {
-  period: string;
+  periodHeadline: string;
+  periodChange: string;
   top100External: Repo[];
   top100Internal: RepoData[];
   top100Comparison: (RepoData | undefined)[];
@@ -983,9 +991,9 @@ async function trackFastestGrowing({
     diffText = `(${formattedDiff} more than any other repo) `;
   }
   const tweet = `
-${repoTag} is the fastest growing top 100 software repo on #GitHub ${period} 🚀
+${repoTag} is the fastest growing top 100 software repo on #GitHub ${periodHeadline} 🚀
 
-+${formattedChange} 🌟 during that time ${diffText}
++${formattedChange} 🌟 ${periodChange} ${diffText}
 -> ${formattedStars} 🌟 in total (top #${internal.position} software repo)
   
 Way to go${await getTwitterTag({
@@ -995,7 +1003,7 @@ Way to go${await getTwitterTag({
 ${repo.html_url}`;
 
   console.info(
-    `Tweeting about ${repoTag} being the fastest growing repo ${period} (${tweet.length}/280 characters).`
+    `Tweeting about ${repoTag} being the fastest growing repo ${periodHeadline} (${tweet.length}/280 characters).`
   );
   tweetManager.addTweet(new Tweet(tweet, 2));
 }

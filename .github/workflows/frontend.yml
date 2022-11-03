@@ -14,8 +14,8 @@ jobs:
       matrix:
         channel:
           - 'stable'
-          - 'beta'
-          - 'master'
+          # - 'beta'
+          # - 'master'
         package:
           - 'github_tracker'
       fail-fast: false
@@ -47,8 +47,8 @@ jobs:
       matrix:
         channel:
           - 'stable'
-          - 'beta'
-          - 'master'
+          # - 'beta'
+          # - 'master'
         package:
           - 'github_tracker'
       fail-fast: false

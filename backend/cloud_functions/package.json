@@ -20,7 +20,7 @@
     "@octokit/rest": "^19.0.5",
     "blurhash": "^2.0.3",
     "firebase-admin": "^11.2.0",
-    "firebase-functions": "^4.0.1",
+    "firebase-functions": "^4.0.2",
     "jimp": "^0.16.2",
     "numbro": "^2.3.6",
     "twitter-api-v2": "^1.12.9"
