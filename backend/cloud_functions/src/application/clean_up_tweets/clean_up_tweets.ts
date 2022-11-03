@@ -33,13 +33,17 @@ export const cleanUpTweetsHttpFunction = v1.https.onRequest(
       cleanUpTweets();
     } catch (e) {
       response.status(500);
-      response.send({
+      response.json({
+        result: 'error',
         error: e,
       });
       return;
     }
 
     response.status(200);
+    response.json({
+      result: 'success',
+    });
   }
 );
 
