@@ -1,18 +1,22 @@
 import { getFirestore, Timestamp, WriteBatch } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import { schedule } from 'firebase-functions/v1/pubsub';
+import * as v1 from 'firebase-functions/v1';
 
 const bucket = 'gs://github-tracker-freezer';
 
-export const freezeDataFunction =
-  // Extracts all stored data older than 31 days old from Firestore to
-  // a JSON file that is stored a Cloud Storage bucket.
-  // We choose 31 days over 28 days since we want to track the fastest growing
-  // repo of the month at the end of each month.
-  // We do this in order to reduce the cost of backing up the Firestore
-  // data every week.
-  // This runs so frequently because we want to keep the JSON files small.
-  schedule('0 */3 * * *').onRun(async (context) => {
+/**
+ * Extracts all stored data older than 31 days old from Firestore to
+ * a JSON file that is stored a Cloud Storage bucket.
+ * We choose 31 days over 28 days since we want to track the fastest growing
+ * repo of the month at the end of each month.
+ * We do this in order to reduce the cost of backing up the Firestore
+ * data every week.
+ * This runs so frequently because we want to keep the JSON files small.
+ */
+export const freezeDataFunction = v1
+  .region('us-central1')
+  .pubsub.schedule('0 */3 * * *')
+  .onRun(async (context) => {
     const firestore = getFirestore();
     const storage = getStorage();
     const snapshot = await firestore

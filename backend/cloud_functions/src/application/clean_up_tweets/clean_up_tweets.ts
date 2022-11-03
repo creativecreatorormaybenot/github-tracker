@@ -19,8 +19,9 @@ const loggingTag = '[clean-up-tweets]';
  *
  * The function is currently triggered on the first day of every month.
  */
-export const cleanUpTweetsScheduledFunction = v1.pubsub
-  .schedule('0 0 1 * *')
+export const cleanUpTweetsScheduledFunction = v1
+  .region('us-central1')
+  .pubsub.schedule('0 0 1 * *')
   .onRun(async (context) => cleanUpTweets());
 
 /**
