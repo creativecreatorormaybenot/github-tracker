@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin';
-import { schedule } from 'firebase-functions/v1/pubsub';
+import * as v1 from 'firebase-functions/v1';
 
 const bucket = 'gs://github-tracker-backups';
 // The repos/<repo>/data collections are the only collection that
@@ -7,9 +7,11 @@ const bucket = 'gs://github-tracker-backups';
 // completely ephemeral as the data is updated every 15 minutes.
 const collections = ['data'];
 
-export const backupDataFunction =
+export const backupDataFunction = v1
+  .region('us-central1')
   // Backs up the whole Firestore database (repos collection) once per week.
-  schedule('0 0 * * 0').onRun(async (context) => {
+  .pubsub.schedule('0 0 * * 0')
+  .onRun(async (context) => {
     const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
     const client = new admin.firestore.v1.FirestoreAdminClient();
     const databaseName = client.databasePath(projectId!, '(default)');

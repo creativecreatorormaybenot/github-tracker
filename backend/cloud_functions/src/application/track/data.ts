@@ -15,7 +15,7 @@ import {
   Timestamp,
   WriteBatch,
 } from 'firebase-admin/firestore';
-import { schedule } from 'firebase-functions/v1/pubsub';
+import * as v1 from 'firebase-functions/v1';
 import { merge } from 'lodash';
 import numbro from 'numbro';
 import { TwitterApi } from 'twitter-api-v2';
@@ -124,8 +124,10 @@ function typedCollection<T>(path: string): CollectionReference<T> {
  * 2. Update the stats for the top 100 repos.
  * 3. Make the Twitter bot take actions based on that if certain events occur.
  */
-export const updateDataFunction = schedule('*/15 * * * *').onRun(
-  async (context) => {
+export const updateDataFunction = v1
+  .region('us-central1')
+  .pubsub.schedule('*/15 * * * *')
+  .onRun(async (context) => {
     initializeFirestore();
     await initializeTwitter();
     const tweetManager = new TweetManager(twitter);
@@ -346,8 +348,7 @@ export const updateDataFunction = schedule('*/15 * * * *').onRun(
 
     // Finally, tweet whatever tweet has the highest priority.
     await tweetManager.tweet();
-  }
-);
+  });
 
 /**
  * Makes the Twitter bot post the fastest growing repo of the month.
@@ -356,8 +357,10 @@ export const updateDataFunction = schedule('*/15 * * * *').onRun(
  * The function will only take action if the current day is the last day
  * of the particular month.
  */
-export const postMonthlyFunction = schedule('15 15 28-31 * *').onRun(
-  async (context) => {
+export const postMonthlyFunction = v1
+  .region('us-central1')
+  .pubsub.schedule('15 15 28-31 * *')
+  .onRun(async (context) => {
     // https://bobbyhadz.com/blog/javascript-check-if-date-is-last-day-of-month#check-if-a-date-is-the-last-day-of-the-month-in-javascript
     function isLastDayOfMonth() {
       const date = new Date();
@@ -365,7 +368,13 @@ export const postMonthlyFunction = schedule('15 15 28-31 * *').onRun(
       return new Date(date.getTime() + oneDayInMs).getDate() === 1;
     }
     // Early exit if the function was not triggered on the last day of the month.
-    if (!isLastDayOfMonth()) return;
+    if (!isLastDayOfMonth()) {
+      console.info(
+        `Not posting about the fastest growing repo of the month as today ${new Date().toISOString()} ` +
+          'is not the last of the month.'
+      );
+      return;
+    }
 
     initializeFirestore();
     await initializeTwitter();
@@ -457,8 +466,7 @@ export const postMonthlyFunction = schedule('15 15 28-31 * *').onRun(
 
     // Finally, tweet whatever tweet has the highest priority.
     await tweetManager.tweet();
-  }
-);
+  });
 
 /**
  * Fetches the top 100 software repos from the GitHub API.
