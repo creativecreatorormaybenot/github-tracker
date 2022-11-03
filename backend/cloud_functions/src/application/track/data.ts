@@ -2,7 +2,7 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { Octokit } from '@octokit/rest';
 import {
   Endpoints,
-  GetResponseDataTypeFromEndpointMethod,
+  GetResponseDataTypeFromEndpointMethod
 } from '@octokit/types';
 import {
   CollectionReference,
@@ -13,17 +13,18 @@ import {
   getFirestore,
   QueryDocumentSnapshot,
   Timestamp,
-  WriteBatch,
+  WriteBatch
 } from 'firebase-admin/firestore';
 import * as v1 from 'firebase-functions/v1';
 import { merge } from 'lodash';
-import numbro from 'numbro';
 import { TwitterApi } from 'twitter-api-v2';
 import { blurhashFromImage } from '../../infrastructure/blurhash';
 import { SecretsAccessor } from '../../infrastructure/secrets';
 import { Tweet, TweetManager } from '../../infrastructure/tweets';
 import { contentRepos } from './content-repos';
 import { milestones } from './milestones';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const numbro = require('numbro');
 
 // Initialize clients that can be initialized synchronously.
 const octokit = new Octokit();
@@ -362,19 +363,20 @@ export const postMonthlyFunction = v1
   .pubsub.schedule('15 15 28-31 * *')
   .onRun(async (context) => {
     // https://bobbyhadz.com/blog/javascript-check-if-date-is-last-day-of-month#check-if-a-date-is-the-last-day-of-the-month-in-javascript
-    function isLastDayOfMonth() {
-      const date = new Date();
-      const oneDayInMs = 1000 * 60 * 60 * 24;
-      return new Date(date.getTime() + oneDayInMs).getDate() === 1;
-    }
+    // function isLastDayOfMonth() {
+    //   const date = new Date();
+    //   const oneDayInMs = 1000 * 60 * 60 * 24;
+    //   return new Date(date.getTime() + oneDayInMs).getDate() === 1;
+    // }
     // Early exit if the function was not triggered on the last day of the month.
-    if (!isLastDayOfMonth()) {
-      console.info(
-        `Not posting about the fastest growing repo of the month as today ${new Date().toISOString()} ` +
-          'is not the last of the month.'
-      );
-      return;
-    }
+    // if (!isLastDayOfMonth()) {
+    //   console.info(
+    //     'Not posting about the fastest growing repo of the month as today',
+    //     `(${new Date().toISOString()})`,
+    //     'is not the last of the month.'
+    //   );
+    //   return;
+    // }
 
     initializeFirestore();
     await initializeTwitter();
