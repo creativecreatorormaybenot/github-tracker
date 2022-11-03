@@ -23,8 +23,8 @@ jobs:
       working-directory: 'frontend/${{ matrix.package }}'
 
     steps:
-      - uses: actions/checkout@v2.4.2
-      - uses: subosito/flutter-action@v2.3.0
+      - uses: actions/checkout@v2.5.0
+      - uses: subosito/flutter-action@v2.8.0
         with:
           channel: ${{ matrix.channel }}
       - name: pub get
@@ -56,8 +56,8 @@ jobs:
       working-directory: 'frontend/${{ matrix.package }}'
 
     steps:
-      - uses: actions/checkout@v2.4.2
-      - uses: subosito/flutter-action@v2.3.0
+      - uses: actions/checkout@v2.5.0
+      - uses: subosito/flutter-action@v2.8.0
         with:
           channel: ${{ matrix.channel }}
       - run: flutter pub get
