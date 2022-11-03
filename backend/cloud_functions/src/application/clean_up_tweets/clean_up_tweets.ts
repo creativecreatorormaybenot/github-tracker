@@ -179,8 +179,9 @@ async function catchApiResponseError(e: ApiResponseError): Promise<void> {
   });
   console.info(
     loggingTag,
-    `Created task ${
-      response.name
-    } to retry cleaning up tweets at${retryDate.toISOString()}.`
+    'Created task',
+    response.name,
+    'to retry cleaning up tweets at',
+    retryDate.toISOString()
   );
 }
