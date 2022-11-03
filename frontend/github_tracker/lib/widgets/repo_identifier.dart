@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:github_tracker/models/repo_stats.dart';
 import 'package:github_tracker/widgets/avatar.dart';
+import 'package:url_launcher/link.dart';
+import 'package:url_launcher/link.dart' as ull;
 
 /// Widget that displays the identifier information for a single repo in a
 /// horizontal layout.
@@ -28,7 +30,19 @@ class RepoIdentifier extends StatelessWidget {
           padding: const EdgeInsets.only(
             left: 6,
           ),
-          child: Text(stats.metadata.fullName),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: ull.Link(
+              uri: Uri.tryParse(stats.metadata.htmlUrl),
+              target: LinkTarget.blank,
+              builder: (context, followLink) {
+                return GestureDetector(
+                  onTap: followLink,
+                  child: Text(stats.metadata.fullName),
+                );
+              },
+            ),
+          ),
         ),
       ],
     );

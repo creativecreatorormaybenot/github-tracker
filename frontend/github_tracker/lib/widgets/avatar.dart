@@ -27,6 +27,8 @@ class Avatar extends StatelessWidget {
         url,
         width: size,
         height: size,
+        cacheHeight: size.toInt(),
+        cacheWidth: size.toInt(),
         filterQuality: FilterQuality.medium,
         frameBuilder: (context, child, frame, _) {
           return AnimatedCrossFade(
