@@ -30,7 +30,7 @@ export const cleanUpTweetsScheduledFunction = v1
 export const cleanUpTweetsHttpFunction = v1.https.onRequest(
   async (request, response) => {
     try {
-      cleanUpTweets();
+      await cleanUpTweets();
     } catch (e) {
       response.status(500);
       response.json({
