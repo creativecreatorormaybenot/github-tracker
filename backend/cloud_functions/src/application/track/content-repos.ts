@@ -100,4 +100,5 @@ export const contentRepos: Array<string> = [
   'microsoft/Web-Dev-For-Beginners',
   'lydiahallie/javascript-questions',
   'kelseyhightower/nocode',
+  'TheAlgorithms/Java',
 ];
