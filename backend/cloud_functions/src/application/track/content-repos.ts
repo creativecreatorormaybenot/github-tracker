@@ -97,4 +97,7 @@ export const contentRepos: Array<string> = [
   'sdmg15/Best-websites-a-programmer-should-visit',
   'practical-tutorials/project-based-learning',
   'GrowingGit/GitHub-Chinese-Top-Charts',
+  'microsoft/Web-Dev-For-Beginners',
+  'lydiahallie/javascript-questions',
+  'kelseyhightower/nocode',
 ];
