@@ -30,6 +30,7 @@ export const contentRepos: Array<string> = [
   '521xueweihan/HelloGitHub',
   '996icu/996.ICU',
   'airbnb/javascript',
+  'Anduin2017/HowToCook',
   'avelino/awesome-go',
   'awesome-selfhosted/awesome-selfhosted',
   'awesomedata/awesome-public-datasets',
