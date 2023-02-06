@@ -757,7 +757,7 @@ async function trackTopRepo(
     optionalMantissa: true,
   });
   const tweet = `
-${repoTag} is now the most starred software repo on #GitHub at ${formattedStars} 🌟
+${repoTag} is now the most starred #GitHub software repo at ${formattedStars} 🌟
 
 ${await getTwitterTag({
   repo,
@@ -991,7 +991,7 @@ async function trackFastestGrowing({
     diffText = `(${formattedDiff} more than any other repo) `;
   }
   const tweet = `
-${repoTag} is the fastest growing top 100 software repo on #GitHub ${periodHeadline} 🚀
+${repoTag} is the fastest growing top 100 #GitHub software repo ${periodHeadline} 🚀
 
 +${formattedChange} 🌟 ${periodChange} ${diffText}
 -> ${formattedStars} 🌟 in total (top #${internal.position} software repo)
