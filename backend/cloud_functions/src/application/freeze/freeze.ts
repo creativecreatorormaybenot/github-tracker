@@ -6,7 +6,7 @@ const bucket = 'gs://github-tracker-freezer';
 
 /**
  * Extracts all stored data older than 31 days old from Firestore to
- * a JSON file that is stored a Cloud Storage bucket.
+ * a JSON file that is stored in a Cloud Storage bucket.
  * We choose 31 days over 28 days since we want to track the fastest growing
  * repo of the month at the end of each month.
  * We do this in order to reduce the cost of backing up the Firestore
